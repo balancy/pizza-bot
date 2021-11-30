@@ -4,6 +4,10 @@ import requests
 from slugify import slugify
 
 
+class EntityExistsError(requests.models.HTTPError):
+    pass
+
+
 def fetch_auth_token(client_id, client_secret):
     """Make an API request to fetch bearer token
 
@@ -72,6 +76,32 @@ def upload_product(token, product_details):
         headers=headers,
         data=json.dumps(data),
     )
+
+    if response.status_code == 409:
+        raise EntityExistsError
+    response.raise_for_status()
+
+    image_url = product_details['product_image']['url']
+    upload_image(token, image_url)
+
+    return response.json()
+
+
+def upload_image(token, image_url):
+    headers = {
+        'Authorization': f'Bearer {token}',
+    }
+
+    files = {'file_location': (None, image_url)}
+
+    response = requests.post(
+        'https://api.moltin.com/v2/files',
+        headers=headers,
+        files=files,
+    )
+
+    if response.status_code == 409:
+        raise EntityExistsError
     response.raise_for_status()
 
     return response.json()
