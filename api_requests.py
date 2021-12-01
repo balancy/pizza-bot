@@ -1,7 +1,10 @@
 import json
+from textwrap import dedent
 
 import requests
 from slugify import slugify
+
+API_ROOT = 'https://api.moltin.com'
 
 
 class EntityExistsError(requests.models.HTTPError):
@@ -24,12 +27,65 @@ def fetch_auth_token(client_id, client_secret):
     }
 
     response = requests.post(
-        'https://api.moltin.com/oauth/access_token',
+        f'{API_ROOT}/oauth/access_token',
         data=data,
     )
     response.raise_for_status()
 
     return response.json()
+
+
+def format_product_details(product_details):
+    """Format product details from json file to format requesting by API.
+
+    Args:
+        product_details: product details dictionary
+
+    Returns:
+        formatted product data for API
+    """
+    slugified_name = slugify(product_details['name'])
+    description = dedent(
+        '''\
+            {}
+
+            Пищевая ценность:
+            Жиры: {}
+            Протеины: {}
+            Углеводы: {}
+            Ккал: {}
+            Вес: {}
+        '''.format(
+            product_details['description'],
+            (food_value := product_details['food_value'])['fats'],
+            food_value['proteins'],
+            food_value['carbohydrates'],
+            food_value['kiloCalories'],
+            food_value['weight'],
+        )
+    )
+
+    data = {
+        'data': {
+            'type': 'product',
+            'name': product_details['name'],
+            'slug': slugified_name,
+            'sku': '{}-{}'.format(slugified_name, product_details['id']),
+            'description': description,
+            'manage_stock': False,
+            'price': [
+                {
+                    'amount': product_details['price'],
+                    'currency': 'RUB',
+                    'includes_tax': True,
+                }
+            ],
+            'status': 'live',
+            'commodity_type': 'physical',
+        },
+    }
+
+    return data
 
 
 def upload_product(token, product_details):
@@ -49,30 +105,10 @@ def upload_product(token, product_details):
         'Content-Type': 'application/json',
     }
 
-    slugified_name = slugify(product_details['name'])
-
-    data = {
-        'data': {
-            'type': 'product',
-            'name': product_details['name'],
-            'slug': slugified_name,
-            'sku': '{}-{}'.format(slugified_name, product_details['id']),
-            'description': product_details['description'],
-            'manage_stock': False,
-            'price': [
-                {
-                    'amount': product_details['price'],
-                    'currency': 'RUB',
-                    'includes_tax': True,
-                }
-            ],
-            'status': 'live',
-            'commodity_type': 'physical',
-        },
-    }
+    data = format_product_details(product_details)
 
     response = requests.post(
-        'https://api.moltin.com/v2/products',
+        f'{API_ROOT}/v2/products',
         headers=headers,
         data=json.dumps(data),
     )
@@ -80,9 +116,6 @@ def upload_product(token, product_details):
     if response.status_code == 409:
         raise EntityExistsError
     response.raise_for_status()
-
-    image_url = product_details['product_image']['url']
-    upload_image(token, image_url)
 
     return response.json()
 
@@ -95,13 +128,36 @@ def upload_image(token, image_url):
     files = {'file_location': (None, image_url)}
 
     response = requests.post(
-        'https://api.moltin.com/v2/files',
+        f'{API_ROOT}/v2/files',
         headers=headers,
         files=files,
     )
 
     if response.status_code == 409:
         raise EntityExistsError
+    response.raise_for_status()
+
+    return response.json()
+
+
+def create_product_image_relation(token, product_id, image_id):
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    data = {
+        'data': {
+            'type': 'main_image',
+            'id': image_id,
+        },
+    }
+
+    response = requests.post(
+        f'{API_ROOT}/v2/products/{product_id}/relationships/main-image',
+        headers=headers,
+        data=json.dumps(data),
+    )
     response.raise_for_status()
 
     return response.json()
