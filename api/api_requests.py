@@ -161,3 +161,91 @@ def create_product_image_relation(token, product_id, image_id):
     response.raise_for_status()
 
     return response.json()
+
+
+def create_flow(token, name, description):
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    data = {
+        "data": {
+            "type": "flow",
+            "name": name,
+            "slug": slugify(name),
+            "description": description,
+            "enabled": True,
+        }
+    }
+
+    response = requests.post(
+        f'{API_ROOT}/v2/flows',
+        headers=headers,
+        data=json.dumps(data),
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def create_flow(token, name, description):
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    data = {
+        'data': {
+            'type': 'flow',
+            'name': name,
+            'slug': slugify(name),
+            'description': description,
+            'enabled': True,
+        }
+    }
+
+    response = requests.post(
+        f'{API_ROOT}/v2/flows',
+        headers=headers,
+        data=json.dumps(data),
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def create_flow_field(token, name, description, field_type, flow_id):
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    data = {
+        'data': {
+            'type': 'field',
+            'name': name,
+            'slug': slugify(name),
+            'field_type': field_type,
+            'description': description,
+            'required': True,
+            'enabled': True,
+            'relationships': {
+                'flow': {
+                    'data': {
+                        'type': 'flow',
+                        'id': flow_id,
+                    }
+                }
+            },
+        }
+    }
+
+    response = requests.post(
+        f'{API_ROOT}/v2/fields',
+        headers=headers,
+        data=json.dumps(data),
+    )
+    response.raise_for_status()
+
+    return response.json()

@@ -12,7 +12,6 @@ from api_requests import (
 )
 
 PRODUCTS_FILE = 'menu.json'
-ADDRESSES_FILE = 'addresses.json'
 
 
 def upload_products(auth_token):
