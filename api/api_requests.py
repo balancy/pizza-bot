@@ -189,32 +189,6 @@ def create_flow(token, name, description):
     return response.json()
 
 
-def create_flow(token, name, description):
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-    }
-
-    data = {
-        'data': {
-            'type': 'flow',
-            'name': name,
-            'slug': slugify(name),
-            'description': description,
-            'enabled': True,
-        }
-    }
-
-    response = requests.post(
-        f'{API_ROOT}/v2/flows',
-        headers=headers,
-        data=json.dumps(data),
-    )
-    response.raise_for_status()
-
-    return response.json()
-
-
 def create_flow_field(token, name, description, field_type, flow_id):
     headers = {
         'Authorization': f'Bearer {token}',
@@ -243,6 +217,29 @@ def create_flow_field(token, name, description, field_type, flow_id):
 
     response = requests.post(
         f'{API_ROOT}/v2/fields',
+        headers=headers,
+        data=json.dumps(data),
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def upload_entry(token, flow_data, flow_slug):
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    data = {
+        'data': {
+            'type': 'entry',
+            **flow_data,
+        }
+    }
+
+    response = requests.post(
+        f'{API_ROOT}/v2/flows/{flow_slug}/entries',
         headers=headers,
         data=json.dumps(data),
     )
