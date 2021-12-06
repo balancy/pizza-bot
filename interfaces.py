@@ -2,7 +2,7 @@ from textwrap import dedent
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
-from api.api_requests import fetch_image_by_id
+from api.moltin_api_requests import fetch_image_by_id
 
 
 def send_products(products, chat):

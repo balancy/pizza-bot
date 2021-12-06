@@ -2,6 +2,7 @@ import os
 import time
 
 from dotenv import load_dotenv
+from telegram import KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -12,8 +13,7 @@ from telegram.ext import (
     Updater,
 )
 
-
-from api.api_requests import (
+from api.moltin_api_requests import (
     add_product_to_cart,
     create_customer,
     fetch_auth_token,
@@ -23,10 +23,17 @@ from api.api_requests import (
     remove_cart_item_by_id,
     EntityExistsError,
 )
+from api.yandex_api_requests import fetch_coordinates
 from interfaces import send_cart, send_product_details, send_products
 
 
-HANDLE_MENU, HANDLE_DESCRIPTION, HANDLE_CART, WAIT_EMAIL = range(4)
+(
+    HANDLE_MENU,
+    HANDLE_DESCRIPTION,
+    HANDLE_CART,
+    WAIT_EMAIL,
+    WAIT_COORDINATES,
+) = range(5)
 
 
 def get_actual_auth_token(context):
@@ -188,7 +195,8 @@ def wait_email(update, context):
     Returns:
         end of conversation state
     """
-    query = update.message.text
+    bot_message = update.message or update.edited_message
+    query = bot_message.text
 
     auth_token = get_actual_auth_token(context)
 
@@ -199,9 +207,10 @@ def wait_email(update, context):
     else:
         bot_reply = f'Вы успешно зарегистрированы.'
 
-    update.message.reply_text(bot_reply)
+    next_request = 'Хорошо. Пришлите нам Ваш адрес текстом или геолокацию.'
+    bot_message.reply_text('{}\n{}'.format(bot_reply, next_request))
 
-    return ConversationHandler.END
+    return WAIT_COORDINATES
 
 
 def handle_incorrect_email(update, context):
@@ -213,10 +222,39 @@ def handle_incorrect_email(update, context):
     Returns:
         next bot state for user
     """
+    bot_message = update.message or update.edited_message
+
     bot_reply = 'Введите снова ваш email. Кажется введеный вами неправильный.'
-    update.message.reply_text(bot_reply)
+    bot_message.reply_text(bot_reply)
 
     return WAIT_EMAIL
+
+
+def handle_location(update, context):
+    location = update.message.location
+    position = (location.latitude, location.longitude)
+    update.message.reply_text('({}, {})'.format(*position))
+
+    return ConversationHandler.END
+
+
+def wait_coordinates(update, context):
+    yandex_token = context.bot_data['yandex_token']
+
+    query = update.message.text
+    position = fetch_coordinates(yandex_token, query)
+
+    if position:
+        update.message.reply_text('({}, {})'.format(*position))
+
+        return ConversationHandler.END
+    else:
+        update.message.reply_text(
+            'Не получилось определить ваши координаты. '
+            'Пришлите нам Ваш адрес текстом или геолокацию.'
+        )
+
+        return WAIT_COORDINATES
 
 
 def exit(update, context):
@@ -238,12 +276,14 @@ if __name__ == '__main__':
 
     bot_token = os.getenv('TG_PIZZA_BOT_TOKEN')
     moltin_client_id = os.getenv('CLIENT_ID')
+    yandex_token = os.getenv('YANDEX_API_TOKEN')
 
     # persistence = PicklePersistence(filename='conversationbot')
     # updater = Updater(bot_token, use_context=True, persistence=persistence)
     updater = Updater(bot_token, use_context=True)
     dp = updater.dispatcher
     dp.bot_data['client_id'] = moltin_client_id
+    dp.bot_data['yandex_token'] = yandex_token
     dp.bot_data['auth_token'] = ''
     dp.bot_data['token_expires'] = time.time()
 
@@ -256,6 +296,10 @@ if __name__ == '__main__':
             WAIT_EMAIL: [
                 MessageHandler(Filters.regex('^\w+@\w+\.\w+$'), wait_email),
                 MessageHandler(Filters.text, handle_incorrect_email),
+            ],
+            WAIT_COORDINATES: [
+                MessageHandler(Filters.location, handle_location),
+                MessageHandler(Filters.text, wait_coordinates),
             ],
         },
         fallbacks=[CommandHandler('exit', exit)],

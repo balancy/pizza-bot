@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-from api_requests import (
+from moltin_api_requests import (
     create_product_image_relation,
     fetch_auth_token,
     upload_image,

@@ -2,7 +2,11 @@ import os
 
 from dotenv import load_dotenv
 
-from api_requests import create_flow, create_flow_field, fetch_auth_token
+from moltin_api_requests import (
+    create_flow,
+    create_flow_field,
+    fetch_auth_token,
+)
 
 ADDRESSES_FILE = 'addresses.json'
 
