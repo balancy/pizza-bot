@@ -1,8 +1,9 @@
 import os
 import time
+from textwrap import dedent
 
 from dotenv import load_dotenv
-from telegram import KeyboardButton, ReplyKeyboardMarkup
+from geopy import distance
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -18,6 +19,7 @@ from api.moltin_api_requests import (
     create_customer,
     fetch_auth_token,
     fetch_cart_items,
+    fetch_entries,
     fetch_products,
     fetch_product_by_id,
     remove_cart_item_by_id,
@@ -224,37 +226,104 @@ def handle_incorrect_email(update, context):
     """
     bot_message = update.message or update.edited_message
 
-    bot_reply = 'Введите снова ваш email. Кажется введеный вами неправильный.'
+    bot_reply = 'Введите снова Ваш email. Кажется введеный Вами неправильный.'
     bot_message.reply_text(bot_reply)
 
     return WAIT_EMAIL
 
 
-def handle_location(update, context):
-    location = update.message.location
-    position = (location.latitude, location.longitude)
-    update.message.reply_text('({}, {})'.format(*position))
+def find_distance_to_nearest_pizzeria(auth_token, client_coordinates):
+    fetched_pizzerias = fetch_entries(auth_token, 'pizzeria')
 
-    return ConversationHandler.END
+    pizzerias_with_distances = {
+        pizzeria['alias']: {
+            'distance': distance.distance(
+                client_coordinates,
+                (pizzeria['latitude'], pizzeria['longitude']),
+            ).kilometers,
+            'address': pizzeria['address'],
+        }
+        for pizzeria in fetched_pizzerias['data']
+    }
+
+    nearest_pizzeria = min(
+        pizzerias_with_distances.items(),
+        key=lambda x: x[1]['distance'],
+    )
+
+    return nearest_pizzeria
 
 
-def wait_coordinates(update, context):
-    yandex_token = context.bot_data['yandex_token']
+def get_response_according_to_distance(pizzeria):
+    distance = pizzeria[1]['distance']
 
-    query = update.message.text
-    position = fetch_coordinates(yandex_token, query)
+    if distance <= 0.5:
+        return dedent(
+            f"""
+            Может, заберете пиццу из нашей пиццерии неподалёку?
+            Она всего в {round(distance * 1000)} метрах от вас!
+            Вот её адрес: {pizzeria[1]['address']}.
 
-    if position:
-        update.message.reply_text('({}, {})'.format(*position))
-
-        return ConversationHandler.END
-    else:
-        update.message.reply_text(
-            'Не получилось определить ваши координаты. '
-            'Пришлите нам Ваш адрес текстом или геолокацию.'
+            Также возможен вариант бесплатной доставки.
+            """
         )
+    if distance <= 5:
+        return dedent(
+            """
+            Похоже, придётся ехать до Вас на самокате. Доставка
+            будет стоить 100 рублей. Доставляем или самовывоз?"""
+        )
+    if distance <= 20:
+        return dedent(
+            """
+            Похоже, придётся ехать до Вас на авто. Доставка будет
+            стоить 300 рублей. Доставляем или самовывоз?"""
+        )
+    return dedent(
+        f"""
+        Простите, но так далеко мы пиццу не доставляем. Ближайшая
+        пиццерия находится в {distance:.1f} километрах от Вас! Возможен
+        только самовывоз"""
+    )
+
+
+def handle_position(update, context):
+    auth_token = get_actual_auth_token(context)
+
+    if location := update.message.location:
+        position = (location.latitude, location.longitude)
+        nearest_pizzeria = find_distance_to_nearest_pizzeria(
+            auth_token,
+            position,
+        )
+        bot_reply = get_response_according_to_distance(nearest_pizzeria)
+
+        update.message.reply_text(bot_reply)
 
         return WAIT_COORDINATES
+
+    yandex_token = context.bot_data['yandex_token']
+
+    address = update.message.text
+    position = fetch_coordinates(yandex_token, address)
+
+    if position:
+        nearest_pizzeria = find_distance_to_nearest_pizzeria(
+            auth_token,
+            position,
+        )
+        bot_reply = get_response_according_to_distance(nearest_pizzeria)
+
+        update.message.reply_text(bot_reply)
+
+        return WAIT_COORDINATES
+
+    update.message.reply_text(
+        'Не получилось определить ваши координаты. '
+        'Пришлите нам Ваш адрес текстом или геолокацию.'
+    )
+
+    return WAIT_COORDINATES
 
 
 def exit(update, context):
@@ -298,8 +367,8 @@ if __name__ == '__main__':
                 MessageHandler(Filters.text, handle_incorrect_email),
             ],
             WAIT_COORDINATES: [
-                MessageHandler(Filters.location, handle_location),
-                MessageHandler(Filters.text, wait_coordinates),
+                MessageHandler(Filters.location, handle_position),
+                MessageHandler(Filters.text, handle_position),
             ],
         },
         fallbacks=[CommandHandler('exit', exit)],

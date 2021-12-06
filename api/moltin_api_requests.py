@@ -255,6 +255,27 @@ def upload_entry(token, flow_data, flow_slug):
     return response.json()
 
 
+def fetch_entries(token, flow_slug):
+    """Make an API request to fetch all entries of a given flow
+
+    Args:
+        token: authorization token
+        flow_slug: sluf of flow to fetch entries from
+
+    Returns:
+        API response containing entries
+    """
+    headers = {'Authorization': f'Bearer {token}'}
+
+    response = requests.get(
+        f'{API_ROOT}/v2/flows/{flow_slug}/entries',
+        headers=headers,
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
 def fetch_products(token):
     """Make an API request to fetch all products in catalog
 
@@ -267,7 +288,7 @@ def fetch_products(token):
     headers = {'Authorization': f'Bearer {token}'}
 
     response = requests.get(
-        'https://api.moltin.com/v2/products',
+        f'{API_ROOT}/v2/products',
         headers=headers,
     )
     response.raise_for_status()
@@ -288,7 +309,7 @@ def fetch_product_by_id(token, product_id):
     headers = {'Authorization': f'Bearer {token}'}
 
     response = requests.get(
-        f'https://api.moltin.com/v2/products/{product_id}',
+        f'{API_ROOT}/v2/products/{product_id}',
         headers=headers,
     )
     response.raise_for_status()
@@ -309,7 +330,7 @@ def fetch_image_by_id(token, image_id):
     headers = {'Authorization': f'Bearer {token}'}
 
     response = requests.get(
-        f'https://api.moltin.com/v2/files/{image_id}',
+        f'{API_ROOT}/v2/files/{image_id}',
         headers=headers,
     )
     response.raise_for_status()
@@ -343,7 +364,7 @@ def add_product_to_cart(token, cart_name, product_id, quantity):
     }
 
     response = requests.post(
-        f'https://api.moltin.com/v2/carts/{cart_name}/items',
+        f'{API_ROOT}/v2/carts/{cart_name}/items',
         headers=headers,
         data=json.dumps(data),
     )
@@ -365,7 +386,7 @@ def fetch_cart_items(token, cart_name):
     headers = {'Authorization': f'Bearer {token}'}
 
     response = requests.get(
-        f'https://api.moltin.com/v2/carts/{cart_name}/items', headers=headers
+        f'{API_ROOT}/v2/carts/{cart_name}/items', headers=headers
     )
     response.raise_for_status()
 
@@ -386,7 +407,7 @@ def remove_cart_item_by_id(token, cart_name, item_id):
     headers = {'Authorization': f'Bearer {token}'}
 
     response = requests.delete(
-        f'https://api.moltin.com/v2/carts/{cart_name}/items/{item_id}',
+        f'{API_ROOT}/v2/carts/{cart_name}/items/{item_id}',
         headers=headers,
     )
     response.raise_for_status()
@@ -419,7 +440,7 @@ def create_customer(token, email):
     }
 
     response = requests.post(
-        'https://api.moltin.com/v2/customers',
+        f'{API_ROOT}/v2/customers',
         headers=headers,
         data=json.dumps(data),
     )
