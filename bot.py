@@ -44,6 +44,13 @@ from interfaces import (
     WAIT_EMAIL,
     HANDLE_COORDINATES,
 ) = range(5)
+NOTIFICATION_ABOUT_PIZZA = dedent(
+    f"""
+    Приятного аппетита! *место для рекламы*
+
+    *сообщение что делать если пицца не пришла*
+    """
+)
 
 
 def start(update, context):
@@ -269,6 +276,8 @@ def handle_delivery(update, context):
     )
     send_order_details_to_deliveryman(cart_id=chat.chat_id, context=context)
 
+    context.job_queue.run_once(notify_about_pizza, 3600, context=chat.chat_id)
+
     return ConversationHandler.END
 
 
@@ -286,6 +295,13 @@ def exit(update, context):
     return ConversationHandler.END
 
 
+def notify_about_pizza(context):
+    context.bot.send_message(
+        context.job.context,
+        text=NOTIFICATION_ABOUT_PIZZA,
+    )
+
+
 if __name__ == '__main__':
     load_dotenv()
 
@@ -294,6 +310,8 @@ if __name__ == '__main__':
     # persistence = PicklePersistence(filename='conversationbot')
     # updater = Updater(bot_token, use_context=True, persistence=persistence)
     updater = Updater(bot_token, use_context=True)
+    jq = updater.job_queue
+
     dp = updater.dispatcher
     dp.bot_data['client_id'] = os.getenv('CLIENT_ID')
     dp.bot_data['client_secret'] = os.getenv('CLIENT_SECRET')
@@ -316,7 +334,7 @@ if __name__ == '__main__':
             HANDLE_COORDINATES: [
                 MessageHandler(Filters.location, handle_address_or_location),
                 MessageHandler(Filters.text, handle_address_or_location),
-                CallbackQueryHandler(handle_delivery),
+                CallbackQueryHandler(handle_delivery, pass_job_queue=True),
             ],
         },
         fallbacks=[CommandHandler('exit', exit)],
