@@ -3,7 +3,6 @@ import time
 from textwrap import dedent
 
 from dotenv import load_dotenv
-from geopy import distance
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -17,16 +16,25 @@ from telegram.ext import (
 from api.moltin_api_requests import (
     add_product_to_cart,
     create_customer,
-    fetch_auth_token,
     fetch_cart_items,
-    fetch_entries,
     fetch_products,
     fetch_product_by_id,
     remove_cart_item_by_id,
+    upload_entry,
     EntityExistsError,
 )
 from api.yandex_api_requests import fetch_coordinates
-from interfaces import send_cart, send_product_details, send_products
+from helpers import (
+    find_nearest_pizzeria,
+    get_actual_auth_token,
+    send_order_details_to_deliveryman,
+)
+from interfaces import (
+    send_cart,
+    send_delivery_options,
+    send_product_details,
+    send_products,
+)
 
 
 (
@@ -34,33 +42,8 @@ from interfaces import send_cart, send_product_details, send_products
     HANDLE_DESCRIPTION,
     HANDLE_CART,
     WAIT_EMAIL,
-    WAIT_COORDINATES,
+    HANDLE_COORDINATES,
 ) = range(5)
-
-
-def get_actual_auth_token(context):
-    """Gets actual valid auth token. Returns current token from bot context if
-    it's not yet expired, otherwise refreshes it in the context by requesting
-    API and returns updated token.
-
-    Args:
-        context: bot context
-
-    Returns:
-        actual valid auth token
-    """
-    expires = context.bot_data['token_expires']
-
-    if expires - time.time() > 10:
-        return context.bot_data['auth_token']
-
-    client_id = context.bot_data['client_id']
-    token_details = fetch_auth_token(client_id)
-
-    context.bot_data['token_expires'] = token_details['expires']
-    context.bot_data['auth_token'] = token_details['access_token']
-
-    return token_details['access_token']
 
 
 def start(update, context):
@@ -94,10 +77,9 @@ def handle_menu(update, context):
     """
     query = update.callback_query.data
     chat = update.callback_query.message
+    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
     auth_token = get_actual_auth_token(context)
-
-    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
     if query == 'Cart':
         cart = fetch_cart_items(auth_token, 'pizza_{}'.format(chat.chat_id))
@@ -122,10 +104,9 @@ def handle_description(update, context):
     """
     query = update.callback_query.data
     chat = update.callback_query.message
+    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
     auth_token = get_actual_auth_token(context)
-
-    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
     if query == 'Back to menu':
         products = fetch_products(auth_token)
@@ -133,7 +114,7 @@ def handle_description(update, context):
 
         return HANDLE_MENU
 
-    elif query == 'Cart':
+    if query == 'Cart':
         cart = fetch_cart_items(auth_token, 'pizza_{}'.format(chat.chat_id))
         send_cart(cart, chat)
 
@@ -163,16 +144,16 @@ def handle_cart(update, context):
     """
     query = update.callback_query.data
     chat = update.callback_query.message
+    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
     auth_token = get_actual_auth_token(context)
-
-    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
     if query == 'Back to menu':
         products = fetch_products(auth_token)
         send_products(products, chat)
 
         return HANDLE_MENU
+
     if query == 'Pay':
         chat.reply_text('Введите ваш email')
 
@@ -197,22 +178,23 @@ def wait_email(update, context):
     Returns:
         end of conversation state
     """
-    bot_message = update.message or update.edited_message
-    query = bot_message.text
+    chat = update.message or update.edited_message
+    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
+    email = chat.text
 
     auth_token = get_actual_auth_token(context)
 
     try:
-        create_customer(token=auth_token, email=query)
+        create_customer(token=auth_token, email=email)
     except EntityExistsError:
-        bot_reply = f'Пользователь с email {query} уже зарегистрирован.'
+        bot_reply = f'Пользователь с email {email} уже зарегистрирован.'
     else:
-        bot_reply = f'Вы успешно зарегистрированы.'
+        bot_reply = f'Пользователь с email {email} зарегистрирован.'
 
-    next_request = 'Хорошо. Пришлите нам Ваш адрес текстом или геолокацию.'
-    bot_message.reply_text('{}\n{}'.format(bot_reply, next_request))
+    next_request = 'Пришлите нам Ваш адрес текстом или геолокацию.'
+    chat.reply_text('{}\n{}'.format(bot_reply, next_request))
 
-    return WAIT_COORDINATES
+    return HANDLE_COORDINATES
 
 
 def handle_incorrect_email(update, context):
@@ -224,106 +206,70 @@ def handle_incorrect_email(update, context):
     Returns:
         next bot state for user
     """
-    bot_message = update.message or update.edited_message
+    chat = update.message or update.edited_message
+    chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
     bot_reply = 'Введите снова Ваш email. Кажется введеный Вами неправильный.'
-    bot_message.reply_text(bot_reply)
+    chat.reply_text(bot_reply)
 
     return WAIT_EMAIL
 
 
-def find_distance_to_nearest_pizzeria(auth_token, client_coordinates):
-    fetched_pizzerias = fetch_entries(auth_token, 'pizzeria')
-
-    pizzerias_with_distances = {
-        pizzeria['alias']: {
-            'distance': distance.distance(
-                client_coordinates,
-                (pizzeria['latitude'], pizzeria['longitude']),
-            ).kilometers,
-            'address': pizzeria['address'],
-        }
-        for pizzeria in fetched_pizzerias['data']
-    }
-
-    nearest_pizzeria = min(
-        pizzerias_with_distances.items(),
-        key=lambda x: x[1]['distance'],
-    )
-
-    return nearest_pizzeria
-
-
-def get_response_according_to_distance(pizzeria):
-    distance = pizzeria[1]['distance']
-
-    if distance <= 0.5:
-        return dedent(
-            f"""
-            Может, заберете пиццу из нашей пиццерии неподалёку?
-            Она всего в {round(distance * 1000)} метрах от вас!
-            Вот её адрес: {pizzeria[1]['address']}.
-
-            Также возможен вариант бесплатной доставки.
-            """
-        )
-    if distance <= 5:
-        return dedent(
-            """
-            Похоже, придётся ехать до Вас на самокате. Доставка
-            будет стоить 100 рублей. Доставляем или самовывоз?"""
-        )
-    if distance <= 20:
-        return dedent(
-            """
-            Похоже, придётся ехать до Вас на авто. Доставка будет
-            стоить 300 рублей. Доставляем или самовывоз?"""
-        )
-    return dedent(
-        f"""
-        Простите, но так далеко мы пиццу не доставляем. Ближайшая
-        пиццерия находится в {distance:.1f} километрах от Вас! Возможен
-        только самовывоз"""
-    )
-
-
-def handle_position(update, context):
+def handle_address_or_location(update, context):
     auth_token = get_actual_auth_token(context)
+    yandex_token = context.bot_data['yandex_token']
 
     if location := update.message.location:
         position = (location.latitude, location.longitude)
-        nearest_pizzeria = find_distance_to_nearest_pizzeria(
-            auth_token,
-            position,
+
+    elif not (
+        position := fetch_coordinates(yandex_token, update.message.text)
+    ):
+        update.message.reply_text(
+            'Не получилось определить ваши координаты. '
+            'Пришлите нам Ваш адрес текстом или геолокацию.'
         )
-        bot_reply = get_response_according_to_distance(nearest_pizzeria)
 
-        update.message.reply_text(bot_reply)
+        return HANDLE_COORDINATES
 
-        return WAIT_COORDINATES
+    nearest_pizzeria = find_nearest_pizzeria(auth_token, position)
+    context.user_data['nearest_pizzeria'] = nearest_pizzeria[1]['pizzeria']
+    send_delivery_options(nearest_pizzeria, update.message)
 
-    yandex_token = context.bot_data['yandex_token']
+    auth_token = get_actual_auth_token(context, is_credentials=True)
+    client_coordinates = {'latitude': position[0], 'longitude': position[1]}
+    context.user_data['client_coordinates'] = client_coordinates
+    upload_entry(auth_token, client_coordinates, 'customer_address')
 
-    address = update.message.text
-    position = fetch_coordinates(yandex_token, address)
+    return HANDLE_COORDINATES
 
-    if position:
-        nearest_pizzeria = find_distance_to_nearest_pizzeria(
-            auth_token,
-            position,
+
+def handle_delivery(update, context):
+    query = update.callback_query.data
+    chat = update.callback_query.message
+
+    if query == 'pickup':
+        nearest_pizzeria = context.user_data['nearest_pizzeria']
+
+        bot_reply = dedent(
+            f"""
+            Вы выбрали самовывоз. Вы можете забрать Ваз заказ по адресу:
+            {nearest_pizzeria['address']}. Спасибо за заказ!"""
         )
-        bot_reply = get_response_according_to_distance(nearest_pizzeria)
+        chat.reply_text(bot_reply)
 
-        update.message.reply_text(bot_reply)
+        return ConversationHandler.END
 
-        return WAIT_COORDINATES
-
-    update.message.reply_text(
-        'Не получилось определить ваши координаты. '
-        'Пришлите нам Ваш адрес текстом или геолокацию.'
+    chat.reply_text(
+        dedent(
+            """
+            Вы выбрали доставку. Информация о заказе передана курьеру.
+            Спасибо за заказ!"""
+        )
     )
+    send_order_details_to_deliveryman(cart_id=chat.chat_id, context=context)
 
-    return WAIT_COORDINATES
+    return ConversationHandler.END
 
 
 def exit(update, context):
@@ -344,17 +290,18 @@ if __name__ == '__main__':
     load_dotenv()
 
     bot_token = os.getenv('TG_PIZZA_BOT_TOKEN')
-    moltin_client_id = os.getenv('CLIENT_ID')
-    yandex_token = os.getenv('YANDEX_API_TOKEN')
 
     # persistence = PicklePersistence(filename='conversationbot')
     # updater = Updater(bot_token, use_context=True, persistence=persistence)
     updater = Updater(bot_token, use_context=True)
     dp = updater.dispatcher
-    dp.bot_data['client_id'] = moltin_client_id
-    dp.bot_data['yandex_token'] = yandex_token
-    dp.bot_data['auth_token'] = ''
-    dp.bot_data['token_expires'] = time.time()
+    dp.bot_data['client_id'] = os.getenv('CLIENT_ID')
+    dp.bot_data['client_secret'] = os.getenv('CLIENT_SECRET')
+    dp.bot_data['yandex_token'] = os.getenv('YANDEX_API_TOKEN')
+    dp.bot_data['implicit_auth_token'] = ''
+    dp.bot_data['credentials_auth_token'] = ''
+    dp.bot_data['implicit_token_expires'] = time.time()
+    dp.bot_data['credentials_token_expires'] = time.time()
 
     handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
@@ -366,9 +313,10 @@ if __name__ == '__main__':
                 MessageHandler(Filters.regex('^\w+@\w+\.\w+$'), wait_email),
                 MessageHandler(Filters.text, handle_incorrect_email),
             ],
-            WAIT_COORDINATES: [
-                MessageHandler(Filters.location, handle_position),
-                MessageHandler(Filters.text, handle_position),
+            HANDLE_COORDINATES: [
+                MessageHandler(Filters.location, handle_address_or_location),
+                MessageHandler(Filters.text, handle_address_or_location),
+                CallbackQueryHandler(handle_delivery),
             ],
         },
         fallbacks=[CommandHandler('exit', exit)],

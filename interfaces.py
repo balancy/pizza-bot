@@ -46,7 +46,7 @@ def send_product_details(product, chat, auth_token):
 
         """
     )
-    caption += product_description
+    caption = f'{caption}{product_description}'
 
     keyboard = [
         [
@@ -109,16 +109,6 @@ def send_cart(cart, chat):
         format_cart_item_for_display(cart_item) for cart_item in cart['data']
     )
 
-    if not bot_reply:
-        bot_reply = 'Ваша корзина пуста'
-    else:
-        total_amount = cart['meta']['display_price']['without_tax']['amount']
-        bot_reply = (
-            f'<strong>Ваша корзина:</strong>\n\n'
-            f'{bot_reply}\n'
-            f'Всего: {total_amount} рублей'
-        )
-
     keyboard = [
         [
             InlineKeyboardButton(
@@ -128,7 +118,20 @@ def send_cart(cart, chat):
         ]
         for cart_item in cart['data']
     ]
-    keyboard.append([InlineKeyboardButton('Оплатить', callback_data='Pay')])
+
+    if not bot_reply:
+        bot_reply = 'Ваша корзина пуста'
+    else:
+        total_amount = cart['meta']['display_price']['without_tax']['amount']
+        bot_reply = (
+            f'<strong>Ваша корзина:</strong>\n\n'
+            f'{bot_reply}'
+            f'<strong>Всего: {total_amount} рублей</strong>'
+        )
+        keyboard.append(
+            [InlineKeyboardButton('Оплатить', callback_data='Pay')]
+        )
+
     keyboard.append(
         [InlineKeyboardButton('Обратно в меню', callback_data='Back to menu')]
     )
@@ -137,4 +140,78 @@ def send_cart(cart, chat):
         bot_reply,
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode=ParseMode.HTML,
+    )
+
+    return bot_reply
+
+
+def send_delivery_options(nearest_pizzeria, chat):
+    distance = nearest_pizzeria[1]['distance']
+
+    keyboard = [
+        [
+            InlineKeyboardButton('Самовывоз', callback_data='pickup'),
+        ],
+    ]
+
+    if distance > 20:
+        return chat.reply_text(
+            dedent(
+                f"""
+                Простите, но так далеко мы пиццу не доставляем. Ближайшая
+                пиццерия находится в {distance:.1f} километрах от Вас! Возможен
+                только самовывоз"""
+            ),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    keyboard.append(
+        [
+            InlineKeyboardButton('Доставка', callback_data='delivery'),
+        ],
+    )
+
+    if distance <= 0.5:
+        return chat.reply_text(
+            dedent(
+                f"""
+                Может, заберете пиццу из нашей пиццерии неподалёку?
+                Она всего в {round(distance * 1000)} метрах от вас!
+                Вот её адрес: {nearest_pizzeria[1]['address']}.
+
+                Также возможен вариант бесплатной доставки."""
+            ),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    if distance <= 5:
+        return chat.reply_text(
+            dedent(
+                """
+                Похоже, придётся ехать до Вас на самокате. Доставка
+                будет стоить 100 рублей. Доставляем или самовывоз?"""
+            ),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    return chat.reply_text(
+        dedent(
+            """
+            Похоже, придётся ехать до Вас на авто. Доставка будет
+            стоить 300 рублей. Доставляем или самовывоз?"""
+        ),
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+def format_cart_for_deliveryman(cart):
+    cart_positions = ''.join(
+        '{}: {} шт\n'.format(cart_item['name'], cart_item['quantity'])
+        for cart_item in cart['data']
+    )
+    total_amount = cart['meta']['display_price']['without_tax']['amount']
+
+    return '{}\n<strong>Всего к оплате: {} рублей</strong>'.format(
+        cart_positions,
+        total_amount,
     )
