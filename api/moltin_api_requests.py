@@ -16,11 +16,11 @@ def fetch_auth_token(client_id, client_secret=None):
 
     Args:
         client_id: elasticpath client id
+        client_secret: elasticpath client secret
 
     Returns:
         API response containing authorization token
     """
-
     if client_secret:
         data = {
             'client_id': client_id,
@@ -43,7 +43,7 @@ def fetch_auth_token(client_id, client_secret=None):
 
 
 def format_product_details(product_details):
-    """Format product details from json file to format requesting by API.
+    """Reformat product details from dictionary to format requested by API.
 
     Args:
         product_details: product details dictionary
@@ -100,12 +100,10 @@ def upload_product(token, product_details):
 
     Args:
         token: authorization token
-        cart_name: name of cart to add product to
-        product_id: id of product to add to cart
-        quantity: quantity of product to add to cart
+        product_details: details of product to upload
 
     Returns:
-        API response containing all cart items
+        API response containing uploaded product
     """
     headers = {
         'Authorization': f'Bearer {token}',
@@ -128,6 +126,18 @@ def upload_product(token, product_details):
 
 
 def upload_image(token, image_url):
+    """Upload image to elasticpath account via API
+
+    Args:
+        token: authorization token
+        image_url: url of image to upload to elasticpath account
+
+    Raises:
+        EntityExistsError: if image already exists
+
+    Returns:
+        API response containing uploaded image
+    """
     headers = {
         'Authorization': f'Bearer {token}',
     }
@@ -148,6 +158,16 @@ def upload_image(token, image_url):
 
 
 def create_product_image_relation(token, product_id, image_id):
+    """Creates relation between product and image via API
+
+    Args:
+        token: authorization token
+        product_id: id of product
+        image_id: id of image
+
+    Returns:
+        API response containing created relation
+    """
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
@@ -171,6 +191,16 @@ def create_product_image_relation(token, product_id, image_id):
 
 
 def create_flow(token, name, description):
+    """Creates custom flow
+
+    Args:
+        token: authorization token
+        name: flow name
+        description: flow description
+
+    Returns:
+        API response containing created flow
+    """
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
@@ -197,6 +227,18 @@ def create_flow(token, name, description):
 
 
 def create_flow_field(token, name, description, field_type, flow_id):
+    """Creates flow field
+
+    Args:
+        token: authorization token
+        name: flow field name
+        description: flow field description
+        field_type: flow field type
+        flow_id: id of flow to create fields of
+
+    Returns:
+        API response containing created flow field
+    """
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
@@ -233,6 +275,17 @@ def create_flow_field(token, name, description, field_type, flow_id):
 
 
 def upload_entry(token, flow_data, flow_slug):
+    """Uploads entry to created flow
+
+    Args:
+        token: authorization token
+        flow_data: entry data to upload
+        flow_slug: slug of flow to upload entry to
+
+    Returns:
+        API response containing uploaded entry
+    """
+
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
@@ -260,7 +313,7 @@ def fetch_entries(token, flow_slug):
 
     Args:
         token: authorization token
-        flow_slug: sluf of flow to fetch entries from
+        flow_slug: slug of flow to fetch entries from
 
     Returns:
         API response containing entries

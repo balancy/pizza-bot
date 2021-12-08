@@ -159,10 +159,16 @@ def send_cart(cart, chat):
         parse_mode=ParseMode.HTML,
     )
 
-    return bot_reply
-
 
 def calculate_delivery_cost(distance):
+    """Calculate delivery cost based on distance
+
+    Args:
+        distance (float): distance in kilometers
+
+    Returns:
+        int: delivery cost
+    """
     if distance <= 0.5:
         return 0
     if distance <= 5:
@@ -173,6 +179,12 @@ def calculate_delivery_cost(distance):
 
 
 def send_delivery_options(nearest_pizzeria, chat):
+    """Send delivery options to chat
+
+    Args:
+        nearest_pizzeria: the closest pizzeria to client
+        chat: chat to send delivery options to
+    """
     distance = nearest_pizzeria['distance']
     delivery_cost = calculate_delivery_cost(distance)
 
@@ -237,6 +249,14 @@ def send_delivery_options(nearest_pizzeria, chat):
 
 
 def format_order_for_deliveryman(cart):
+    """Format order details for deliveryman
+
+    Args:
+        cart (dictionary): client current cart as order details
+
+    Returns:
+        str: order details in formatted form
+    """
     cart_positions = ''.join(
         '{}: {} шт\n'.format(cart_item['name'], cart_item['quantity'])
         for cart_item in cart['data']
@@ -250,6 +270,14 @@ def format_order_for_deliveryman(cart):
 
 
 def format_order_details_for_invoice(cart):
+    """Format order details for payment invoice
+
+    Args:
+        cart (dictionary): client current cart as order details
+
+    Returns:
+        str: order details in formatted form
+    """
     return ''.join(
         '{}: {} шт; '.format(cart_item['name'], cart_item['quantity'])
         for cart_item in cart['data']
@@ -263,6 +291,7 @@ def get_actual_auth_token(context, is_credentials=False):
 
     Args:
         context: bot context
+        is_credentials: if token needs to be of 'client_credentials' type
 
     Returns:
         actual valid auth token
@@ -289,6 +318,15 @@ def get_actual_auth_token(context, is_credentials=False):
 
 
 def find_nearest_pizzeria(auth_token, client_coordinates):
+    """Finds the closest pizzeria in terms of distance to the client
+
+    Args:
+        auth_token (str): authentication token
+        client_coordinates (tuple): client current coordinates (lat, lon)
+
+    Returns:
+        dict: essential info about nearest pizzeria
+    """
     fetched_pizzerias = fetch_entries(auth_token, 'pizzeria')
 
     pizzerias_with_distances = [
@@ -311,16 +349,22 @@ def find_nearest_pizzeria(auth_token, client_coordinates):
 
     keys_to_keep = ('address', 'distance', 'deliveryman_telegram_id')
 
-    pizzeria_address_with_distance = {
+    pizzeria_essential_info = {
         key: value
         for key, value in nearest_pizzeria.items()
         if key in keys_to_keep
     }
 
-    return pizzeria_address_with_distance
+    return pizzeria_essential_info
 
 
 def send_order_details_to_deliveryman(cart_id, context):
+    """Sends order details to the deliveryman
+
+    Args:
+        cart_id (str): id of client cart
+        context: bot context
+    """
     auth_token = get_actual_auth_token(context)
     cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
     cart_formatted = format_order_for_deliveryman(cart)
@@ -342,6 +386,15 @@ def send_order_details_to_deliveryman(cart_id, context):
 
 
 def get_order_details_for_invoice(cart_id, context):
+    """Gets order details for payment invoice
+
+    Args:
+        cart_id (str): id of client cart
+        context: bot context
+
+    Returns:
+        tuple: order details and total invoice amount
+    """
     auth_token = get_actual_auth_token(context)
     cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
     order_details = format_order_details_for_invoice(cart)
@@ -351,6 +404,11 @@ def get_order_details_for_invoice(cart_id, context):
 
 
 def notify_about_pizza(context):
+    """Notifies client about not delivered pizza
+
+    Args:
+        context: bot context
+    """
     context.bot.send_message(
         context.job.context,
         text=NOTIFICATION_ABOUT_PIZZA,

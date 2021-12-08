@@ -51,10 +51,7 @@ from helpers import (
 
 
 def start(update, context):
-    """Start handler
-
-    Args:
-        update and context: standard bot handler args
+    """Start handler.
 
     Returns:
         next bot state for user
@@ -71,10 +68,7 @@ def start(update, context):
 
 
 def handle_menu(update, context):
-    """Products menu handler
-
-    Args:
-        update and context: standard bot handler args
+    """Products menu handler.
 
     Returns:
         next bot state for user
@@ -98,10 +92,7 @@ def handle_menu(update, context):
 
 
 def handle_description(update, context):
-    """Product description handler
-
-    Args:
-        update and context: standard bot handler args
+    """Product description handler.
 
     Returns:
         next bot state for user
@@ -138,10 +129,7 @@ def handle_description(update, context):
 
 
 def handle_cart(update, context):
-    """User cart handler
-
-    Args:
-        update and context: standard bot handler args
+    """Client cart handler.
 
     Returns:
         next bot state for user
@@ -174,13 +162,10 @@ def handle_cart(update, context):
 
 
 def wait_email(update, context):
-    """Waiting user email input handler
-
-    Args:
-        update and context: standard bot handler args
+    """Waits client email input.
 
     Returns:
-        end of conversation state
+        next bot state for user
     """
     chat = update.message or update.edited_message
     chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
@@ -202,13 +187,10 @@ def wait_email(update, context):
 
 
 def handle_incorrect_email(update, context):
-    """Demands user to reenter his email.
-
-    Args:
-        update and context: standard bot handler args
+    """Asks client for reentering his email.
 
     Returns:
-        next bot state for user
+        previous bot state for user
     """
     chat = update.message or update.edited_message
     chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
@@ -220,6 +202,11 @@ def handle_incorrect_email(update, context):
 
 
 def handle_address_or_location(update, context):
+    """Handles entered address or location.
+
+    Returns:
+        next bot state for user
+    """
     auth_token = get_actual_auth_token(context)
     yandex_token = context.bot_data['yandex_token']
 
@@ -249,6 +236,11 @@ def handle_address_or_location(update, context):
 
 
 def handle_delivery(update, context):
+    """Handles client delivery choice.
+
+    Returns:
+        next bot state for user
+    """
     query = update.callback_query.data
     chat = update.callback_query.message
 
@@ -285,6 +277,11 @@ def handle_delivery(update, context):
 
 
 def handle_invoice_checking(update, context):
+    """Checks if client invoice is correct.
+
+    Returns:
+        next bot state for user
+    """
     query = update.pre_checkout_query
     if query.invoice_payload != 'pizza-bot-payload':
         query.answer(ok=False, error_message="Что-то пошло не так...")
@@ -295,6 +292,11 @@ def handle_invoice_checking(update, context):
 
 
 def handle_payment(update, context):
+    """Handles successful payment processing for client.
+
+    Returns:
+        end of conversation state
+    """
     chat = update.message
     delivery_option = context.user_data['delivery_option']
 

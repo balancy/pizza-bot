@@ -10,6 +10,11 @@ FLOW_SLUG = 'pizzeria'
 
 
 def upload_pizzerias(auth_token):
+    """Upload all pizzerias entries
+
+    Args:
+        auth_token: authorization token
+    """
     with open(ADDRESSES_FILE, 'r') as addresses_file:
         pizzerias = json.load(addresses_file)
 

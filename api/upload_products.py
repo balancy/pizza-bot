@@ -15,6 +15,11 @@ PRODUCTS_FILE = 'menu.json'
 
 
 def upload_products(auth_token):
+    """Upload all products entries
+
+    Args:
+        auth_token: authorization token
+    """
     with open(PRODUCTS_FILE, 'r') as products_file:
         products = json.load(products_file)
 
