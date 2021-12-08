@@ -1,0 +1,8 @@
+__pycache__
+.env.example
+.gitignore
+.venv
+Dockerfile
+Dofkerfile.prod
+README.md
+Procfile
