@@ -43,11 +43,26 @@ pip install -r requirements.txt
 - `YANDEX_API_TOKEN` - token of your yandex account. Could by acquired via [yandex](https://developer.tech.yandex.ru/services/).
 - `PAYMENT_PROVIDER_TOKEN` - token of payment provider for your telegram bot. Could be acquired via [BotFather](https://t.me/BotFather).
 
-## Launch bot
+## Launch bot via console
 
 ```console
 python bot.py
 ```
+
+## Launch bot via docker
+
+1. Create docker image
+
+```console
+docker build -t pizza-bot .
+```
+
+2. Launch docker container
+
+```console
+docker run -d pizza-bot
+```
+
 
 ## NOTES
 

@@ -2,6 +2,7 @@ __pycache__
 .env.example
 .gitignore
 .venv
+conversationbot
 Dockerfile
 Dofkerfile.prod
 README.md
