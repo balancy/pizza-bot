@@ -48,3 +48,7 @@ pip install -r requirements.txt
 ```console
 python bot.py
 ```
+
+## NOTES
+
+- `Test card` `4242 4242 4242 4242`
