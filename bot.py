@@ -338,9 +338,8 @@ if __name__ == '__main__':
 
     bot_token = os.getenv('TG_PIZZA_BOT_TOKEN')
 
-    # persistence = PicklePersistence(filename='conversationbot')
-    # updater = Updater(bot_token, use_context=True, persistence=persistence)
-    updater = Updater(bot_token, use_context=True)
+    persistence = PicklePersistence(filename='conversationbot')
+    updater = Updater(bot_token, use_context=True, persistence=persistence)
     jq = updater.job_queue
 
     dp = updater.dispatcher
@@ -380,7 +379,7 @@ if __name__ == '__main__':
             ],
         },
         fallbacks=[CommandHandler('exit', exit)],
-        persistent=False,
+        persistent=True,
         name='conversation_handler',
         per_chat=False,
     )

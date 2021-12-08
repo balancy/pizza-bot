@@ -329,9 +329,13 @@ def send_order_details_to_deliveryman(cart_id, context):
     client_coordinates = context.user_data['client_coordinates']
     deliveryman_tg_id = nearest_pizzeria['deliveryman_telegram_id']
 
+    bot_reply = (
+        f'<strong>Заказ от клиента {cart_id}</strong>\n\n{cart_formatted}'
+    )
+
     context.bot.send_message(
         deliveryman_tg_id,
-        text=cart_formatted,
+        text=bot_reply,
         parse_mode=ParseMode.HTML,
     )
     context.bot.send_location(deliveryman_tg_id, **client_coordinates)
