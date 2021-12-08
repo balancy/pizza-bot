@@ -3,6 +3,7 @@ import time
 from textwrap import dedent
 
 from dotenv import load_dotenv
+from telegram import LabeledPrice
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -10,6 +11,7 @@ from telegram.ext import (
     Filters,
     MessageHandler,
     PicklePersistence,
+    PreCheckoutQueryHandler,
     Updater,
 )
 
@@ -25,13 +27,14 @@ from api.moltin_api_requests import (
 )
 from api.yandex_api_requests import fetch_coordinates
 from helpers import (
+    calculate_delivery_cost,
     find_nearest_pizzeria,
     get_actual_auth_token,
-    send_order_details_to_deliveryman,
-)
-from interfaces import (
+    get_order_details_for_invoice,
+    notify_about_pizza,
     send_cart,
     send_delivery_options,
+    send_order_details_to_deliveryman,
     send_product_details,
     send_products,
 )
@@ -43,14 +46,8 @@ from interfaces import (
     HANDLE_CART,
     WAIT_EMAIL,
     HANDLE_COORDINATES,
-) = range(5)
-NOTIFICATION_ABOUT_PIZZA = dedent(
-    f"""
-    Приятного аппетита! *место для рекламы*
-
-    *сообщение что делать если пицца не пришла*
-    """
-)
+    HANDLE_PAYMENT,
+) = range(6)
 
 
 def start(update, context):
@@ -240,7 +237,7 @@ def handle_address_or_location(update, context):
         return HANDLE_COORDINATES
 
     nearest_pizzeria = find_nearest_pizzeria(auth_token, position)
-    context.user_data['nearest_pizzeria'] = nearest_pizzeria[1]['pizzeria']
+    context.user_data['nearest_pizzeria'] = nearest_pizzeria
     send_delivery_options(nearest_pizzeria, update.message)
 
     auth_token = get_actual_auth_token(context, is_credentials=True)
@@ -255,28 +252,69 @@ def handle_delivery(update, context):
     query = update.callback_query.data
     chat = update.callback_query.message
 
-    if query == 'pickup':
-        nearest_pizzeria = context.user_data['nearest_pizzeria']
+    distance = context.user_data['nearest_pizzeria']['distance']
+    delivery_cost = calculate_delivery_cost(distance)
 
+    order_details, total_amount = get_order_details_for_invoice(
+        cart_id=chat.chat_id,
+        context=context,
+    )
+
+    context.user_data['delivery_option'] = query
+    if query == 'pickup':
+        user_choice = 'самовывоз'
+    else:
+        user_choice = 'доставку'
+        order_details += f'Доставка: {delivery_cost}'
+        total_amount += delivery_cost
+
+    chat.reply_text(f'Вы выбрали {user_choice}. Можете оплатить Ваш заказ.')
+    context.bot.send_invoice(
+        chat_id=chat.chat_id,
+        title='Оплата заказа из пиццерии',
+        description=order_details,
+        payload=f'pizza-bot-payload',
+        provider_token=context.bot_data['payment_token'],
+        currency='RUB',
+        need_name=True,
+        need_phone_number=True,
+        prices=[LabeledPrice('Заказ из пиццерии', total_amount * 100)],
+    )
+
+    return HANDLE_PAYMENT
+
+
+def handle_invoice_checking(update, context):
+    query = update.pre_checkout_query
+    if query.invoice_payload != 'pizza-bot-payload':
+        query.answer(ok=False, error_message="Что-то пошло не так...")
+    else:
+        query.answer(ok=True)
+
+    return HANDLE_PAYMENT
+
+
+def handle_payment(update, context):
+    chat = update.message
+    delivery_option = context.user_data['delivery_option']
+
+    if delivery_option == 'pickup':
+        pizzeria_address = context.user_data['delivery_option']
         bot_reply = dedent(
             f"""
-            Вы выбрали самовывоз. Вы можете забрать Ваз заказ по адресу:
-            {nearest_pizzeria['address']}. Спасибо за заказ!"""
+            Вы можете забрать Ваз заказ по адресу: {pizzeria_address}.
+            Спасибо за заказ!"""
         )
-        chat.reply_text(bot_reply)
+
+        update.message.reply_text(bot_reply)
 
         return ConversationHandler.END
 
-    chat.reply_text(
-        dedent(
-            """
-            Вы выбрали доставку. Информация о заказе передана курьеру.
-            Спасибо за заказ!"""
-        )
-    )
     send_order_details_to_deliveryman(cart_id=chat.chat_id, context=context)
-
     context.job_queue.run_once(notify_about_pizza, 3600, context=chat.chat_id)
+
+    bot_reply = 'Информация о заказе передана курьеру. Спасибо за заказ!'
+    update.message.reply_text(bot_reply)
 
     return ConversationHandler.END
 
@@ -295,13 +333,6 @@ def exit(update, context):
     return ConversationHandler.END
 
 
-def notify_about_pizza(context):
-    context.bot.send_message(
-        context.job.context,
-        text=NOTIFICATION_ABOUT_PIZZA,
-    )
-
-
 if __name__ == '__main__':
     load_dotenv()
 
@@ -316,6 +347,7 @@ if __name__ == '__main__':
     dp.bot_data['client_id'] = os.getenv('CLIENT_ID')
     dp.bot_data['client_secret'] = os.getenv('CLIENT_SECRET')
     dp.bot_data['yandex_token'] = os.getenv('YANDEX_API_TOKEN')
+    dp.bot_data['payment_token'] = os.getenv('PAYMENT_PROVIDER_TOKEN')
     dp.bot_data['implicit_auth_token'] = ''
     dp.bot_data['credentials_auth_token'] = ''
     dp.bot_data['implicit_token_expires'] = time.time()
@@ -332,14 +364,25 @@ if __name__ == '__main__':
                 MessageHandler(Filters.text, handle_incorrect_email),
             ],
             HANDLE_COORDINATES: [
-                MessageHandler(Filters.location, handle_address_or_location),
-                MessageHandler(Filters.text, handle_address_or_location),
-                CallbackQueryHandler(handle_delivery, pass_job_queue=True),
+                MessageHandler(
+                    Filters.location | Filters.text,
+                    handle_address_or_location,
+                ),
+                CallbackQueryHandler(handle_delivery),
+            ],
+            HANDLE_PAYMENT: [
+                PreCheckoutQueryHandler(handle_invoice_checking),
+                MessageHandler(
+                    Filters.successful_payment,
+                    handle_payment,
+                    pass_job_queue=True,
+                ),
             ],
         },
         fallbacks=[CommandHandler('exit', exit)],
         persistent=False,
         name='conversation_handler',
+        per_chat=False,
     )
 
     dp.add_handler(handler)
