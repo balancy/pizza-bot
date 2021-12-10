@@ -248,11 +248,12 @@ def send_delivery_options(nearest_pizzeria, chat):
     )
 
 
-def format_order_for_deliveryman(cart):
+def format_order_for_deliveryman(cart, delivery_cost):
     """Format order details for deliveryman
 
     Args:
         cart (dictionary): client current cart as order details
+        deliver_cost: cost of delivery
 
     Returns:
         str: order details in formatted form
@@ -261,7 +262,13 @@ def format_order_for_deliveryman(cart):
         '{}: {} шт\n'.format(cart_item['name'], cart_item['quantity'])
         for cart_item in cart['data']
     )
+    cart_positions = '{}Плата за доставку: {} рублей\n'.format(
+        cart_positions,
+        delivery_cost,
+    )
+
     total_amount = cart['meta']['display_price']['without_tax']['amount']
+    total_amount += delivery_cost
 
     return '{}\n<strong>Всего к оплате: {} рублей</strong>'.format(
         cart_positions,
@@ -358,16 +365,17 @@ def find_nearest_pizzeria(auth_token, client_coordinates):
     return pizzeria_essential_info
 
 
-def send_order_details_to_deliveryman(cart_id, context):
+def send_order_details_to_deliveryman(cart_id, context, delivery_cost):
     """Sends order details to the deliveryman
 
     Args:
         cart_id (str): id of client cart
         context: bot context
+        delivery_cost: cost of delivery in rubles
     """
     auth_token = get_actual_auth_token(context)
     cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
-    cart_formatted = format_order_for_deliveryman(cart)
+    cart_formatted = format_order_for_deliveryman(cart, delivery_cost)
 
     nearest_pizzeria = context.user_data['nearest_pizzeria']
     client_coordinates = context.user_data['client_coordinates']

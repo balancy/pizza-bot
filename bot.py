@@ -257,7 +257,7 @@ def handle_delivery(update, context):
         user_choice = 'самовывоз'
     else:
         user_choice = 'доставку'
-        order_details += f'Доставка: {delivery_cost}'
+        order_details = f'{order_details}Доставка: {delivery_cost}'
         total_amount += delivery_cost
 
     chat.reply_text(f'Вы выбрали {user_choice}. Можете оплатить Ваш заказ.')
@@ -301,7 +301,7 @@ def handle_payment(update, context):
     delivery_option = context.user_data['delivery_option']
 
     if delivery_option == 'pickup':
-        pizzeria_address = context.user_data['delivery_option']
+        pizzeria_address = context.user_data['nearest_pizzeria']['address']
         bot_reply = dedent(
             f"""
             Вы можете забрать Ваз заказ по адресу: {pizzeria_address}.
@@ -312,7 +312,13 @@ def handle_payment(update, context):
 
         return ConversationHandler.END
 
-    send_order_details_to_deliveryman(cart_id=chat.chat_id, context=context)
+    distance = context.user_data['nearest_pizzeria']['distance']
+    delivery_cost = calculate_delivery_cost(distance)
+    send_order_details_to_deliveryman(
+        cart_id=chat.chat_id,
+        context=context,
+        delivery_cost=delivery_cost,
+    )
     context.job_queue.run_once(notify_about_pizza, 3600, context=chat.chat_id)
 
     bot_reply = 'Информация о заказе передана курьеру. Спасибо за заказ!'
