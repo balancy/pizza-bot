@@ -51,18 +51,41 @@ python bot.py
 
 ## Launch bot via docker
 
-1. Create docker image
+#### Create docker image
 
 ```console
 docker build -t pizza-bot .
 ```
 
-2. Launch docker container
+#### Launch docker container
+
+1. You can use the following command if you want to use the same setup of environment variables we used locally:
 
 ```console
-docker run -d pizza-bot
+docker run --env-file ./.env pizza-bot
 ```
 
+2. If you want to use different setup of environment variables:
+
+Make a copy of .env file:
+
+```console
+cp .env .env.prod
+```
+
+Define your proper production environment variables in `.env.prod`
+
+- `CLIENT_ID` - client id of your [elasticpath](https://www.elasticpath.com/) account
+- `CLIENT_SECRET` - client secret of your [elasticpath](https://www.elasticpath.com/) account
+- `TG_BOT_TOKEN` - token of your telegram pizza shop bot. Could be acquired via [BotFather](https://t.me/BotFather).
+- `YANDEX_API_TOKEN` - token of your yandex account. Could by acquired via [yandex](https://developer.tech.yandex.ru/services/).
+- `PAYMENT_PROVIDER_TOKEN` - token of payment provider for your telegram bot. Could be acquired via [BotFather](https://t.me/BotFather).
+
+Run container:
+
+```console
+docker run --env-file ./.env.dev pizza-bot
+```
 
 ## NOTES
 
