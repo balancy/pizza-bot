@@ -1,3 +1,4 @@
+from slugify import slugify
 import textwrap
 
 
@@ -52,3 +53,51 @@ def format_order(cart, delivery_cost):
         cart_positions,
         total_amount,
     )
+
+
+def format_product(product_details):
+    """Reformat product details from dictionary to format requested by API.
+
+    Args:
+        product_details: product details dictionary
+
+    Returns:
+        formatted product data for API
+    """
+    slugified_name = slugify(product_details['name'])
+    nutritional_value = product_details['food_value']
+
+    description = textwrap.dedent(
+        f'''\
+            {product_details['description']}
+
+            Пищевая ценность:
+            Жиры: {nutritional_value['fats']}
+            Протеины: {nutritional_value['proteins']}
+            Углеводы: {nutritional_value['carbohydrates']}
+            Ккал: {nutritional_value['kiloCalories']}
+            Вес: {nutritional_value['weight']}
+        '''
+    )
+
+    data = {
+        'data': {
+            'type': 'product',
+            'name': product_details['name'],
+            'slug': slugified_name,
+            'sku': f'{slugified_name}-{product_details["id"]}',
+            'description': description,
+            'manage_stock': False,
+            'price': [
+                {
+                    'amount': product_details['price'],
+                    'currency': 'RUB',
+                    'includes_tax': True,
+                }
+            ],
+            'status': 'live',
+            'commodity_type': 'physical',
+        },
+    }
+
+    return data

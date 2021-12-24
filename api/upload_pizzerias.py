@@ -3,9 +3,9 @@ import os
 
 from dotenv import load_dotenv
 
-from moltin_api_requests import fetch_auth_token, upload_entry
+from api.moltin_api_requests import fetch_auth_token, upload_entry
 
-ADDRESSES_FILE = 'addresses.json'
+ADDRESSES_FILE = 'api/addresses.json'
 FLOW_SLUG = 'pizzeria'
 
 

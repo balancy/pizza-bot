@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-from moltin_api_requests import (
+from api.moltin_api_requests import (
     create_product_image_relation,
     fetch_auth_token,
     upload_image,
@@ -11,7 +11,7 @@ from moltin_api_requests import (
     EntityExistsError,
 )
 
-PRODUCTS_FILE = 'menu.json'
+PRODUCTS_FILE = 'api/menu.json'
 
 
 def upload_products(auth_token):
