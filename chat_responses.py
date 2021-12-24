@@ -1,25 +1,13 @@
 import textwrap
-import time
 
-from geopy import distance
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
-from telegram.parsemode import ParseMode
 
-from api.moltin_api_requests import (
-    fetch_auth_token,
-    fetch_cart_items,
-    fetch_entries,
-    fetch_image_by_id,
+from api.moltin_api_requests import fetch_image_by_id, fetch_cart_items
+from output_format import (
+    format_cart_item_for_display,
+    format_order_for_deliveryman,
 )
-
-
-NOTIFICATION_ABOUT_PIZZA = textwrap.dedent(
-    f"""
-    Приятного аппетита! *место для рекламы*
-
-    *сообщение что делать если пицца не пришла*
-    """
-)
+from utils import calculate_delivery_cost, get_actual_auth_token
 
 
 def send_products(products, chat):
@@ -90,31 +78,6 @@ def send_product_details(product, chat, auth_token):
     )
 
 
-def format_cart_item_for_display(cart_item):
-    """Transfrom cart item dicionary to formatted string
-
-    Args:
-        cart_item: cart item dicionary
-
-    Returns:
-        formatted string
-    """
-    name = cart_item['name']
-    formatted_price = cart_item['meta']['display_price']['without_tax']
-    unit_price = formatted_price['unit']['amount']
-    position_price = formatted_price['value']['amount']
-    quantity = cart_item['quantity']
-
-    return textwrap.dedent(
-        f"""\
-        <strong>{name}</strong>
-        Цена: {unit_price} рублей за штуку
-        Штук в корзине: {quantity} на сумму {position_price} рублей
-
-        """
-    )
-
-
 def send_cart(cart, chat):
     """Send cart items list with keyboard to chat
 
@@ -158,24 +121,6 @@ def send_cart(cart, chat):
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode=ParseMode.HTML,
     )
-
-
-def calculate_delivery_cost(distance):
-    """Calculate delivery cost based on distance
-
-    Args:
-        distance (float): distance in kilometers
-
-    Returns:
-        int: delivery cost
-    """
-    if distance <= 0.5:
-        return 0
-    if distance <= 5:
-        return 100
-    if distance <= 20:
-        return 300
-    return 0
 
 
 def send_delivery_options(nearest_pizzeria, chat):
@@ -248,123 +193,6 @@ def send_delivery_options(nearest_pizzeria, chat):
     )
 
 
-def format_order_for_deliveryman(cart, delivery_cost):
-    """Format order details for deliveryman
-
-    Args:
-        cart (dictionary): client current cart as order details
-        deliver_cost: cost of delivery
-
-    Returns:
-        str: order details in formatted form
-    """
-    cart_positions = ''.join(
-        '{}: {} шт\n'.format(cart_item['name'], cart_item['quantity'])
-        for cart_item in cart['data']
-    )
-    cart_positions = '{}Плата за доставку: {} рублей\n'.format(
-        cart_positions,
-        delivery_cost,
-    )
-
-    total_amount = cart['meta']['display_price']['without_tax']['amount']
-    total_amount += delivery_cost
-
-    return '{}\n<strong>Всего к оплате: {} рублей</strong>'.format(
-        cart_positions,
-        total_amount,
-    )
-
-
-def format_order_details_for_invoice(cart):
-    """Format order details for payment invoice
-
-    Args:
-        cart (dictionary): client current cart as order details
-
-    Returns:
-        str: order details in formatted form
-    """
-    return ''.join(
-        '{}: {} шт; '.format(cart_item['name'], cart_item['quantity'])
-        for cart_item in cart['data']
-    )
-
-
-def get_actual_auth_token(context, is_credentials=False):
-    """Gets actual valid auth token. Returns current token from bot context if
-    it's not yet expired, otherwise refreshes it in the context by requesting
-    API and returns updated token.
-
-    Args:
-        context: bot context
-        is_credentials: if token needs to be of 'client_credentials' type
-
-    Returns:
-        actual valid auth token
-    """
-
-    prefix = 'credentials' if is_credentials else 'implicit'
-
-    expires = context.bot_data[f'{prefix}_token_expires']
-
-    if expires - time.time() > 10:
-        return context.bot_data[f'{prefix}_auth_token']
-
-    client_id = context.bot_data['client_id']
-    client_secret = context.bot_data['client_secret']
-
-    params = (client_id, client_secret) if is_credentials else (client_id,)
-
-    token_details = fetch_auth_token(*params)
-
-    context.bot_data[f'{prefix}_token_expires'] = token_details['expires']
-    context.bot_data[f'{prefix}_auth_token'] = token_details['access_token']
-
-    return token_details['access_token']
-
-
-def find_nearest_pizzeria(auth_token, client_coordinates):
-    """Finds the closest pizzeria in terms of distance to the client
-
-    Args:
-        auth_token (str): authentication token
-        client_coordinates (tuple): client current coordinates (lat, lon)
-
-    Returns:
-        dict: essential info about nearest pizzeria
-    """
-    fetched_pizzerias = fetch_entries(auth_token, 'pizzeria')
-
-    pizzerias_with_distances = [
-        dict(
-            **pizzeria,
-            **{
-                'distance': distance.distance(
-                    client_coordinates,
-                    (pizzeria['latitude'], pizzeria['longitude']),
-                ).kilometers
-            },
-        )
-        for pizzeria in fetched_pizzerias['data']
-    ]
-
-    nearest_pizzeria = min(
-        pizzerias_with_distances,
-        key=lambda x: x['distance'],
-    )
-
-    keys_to_keep = ('address', 'distance', 'deliveryman_telegram_id')
-
-    pizzeria_essential_info = {
-        key: value
-        for key, value in nearest_pizzeria.items()
-        if key in keys_to_keep
-    }
-
-    return pizzeria_essential_info
-
-
 def send_order_details_to_deliveryman(cart_id, context, delivery_cost):
     """Sends order details to the deliveryman
 
@@ -391,33 +219,3 @@ def send_order_details_to_deliveryman(cart_id, context, delivery_cost):
         parse_mode=ParseMode.HTML,
     )
     context.bot.send_location(deliveryman_tg_id, **client_coordinates)
-
-
-def get_order_details_for_invoice(cart_id, context):
-    """Gets order details for payment invoice
-
-    Args:
-        cart_id (str): id of client cart
-        context: bot context
-
-    Returns:
-        tuple: order details and total invoice amount
-    """
-    auth_token = get_actual_auth_token(context)
-    cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
-    order_details = format_order_details_for_invoice(cart)
-
-    total_amount = cart['meta']['display_price']['without_tax']['amount']
-    return (order_details, total_amount)
-
-
-def notify_about_pizza(context):
-    """Notifies client about not delivered pizza
-
-    Args:
-        context: bot context
-    """
-    context.bot.send_message(
-        context.job.context,
-        text=NOTIFICATION_ABOUT_PIZZA,
-    )

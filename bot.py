@@ -26,19 +26,20 @@ from api.moltin_api_requests import (
     EntityExistsError,
 )
 from api.yandex_api_requests import fetch_coordinates
-from helpers import (
-    calculate_delivery_cost,
-    find_nearest_pizzeria,
-    get_actual_auth_token,
-    get_order_details_for_invoice,
-    notify_about_pizza,
+from chat_responses import (
     send_cart,
     send_delivery_options,
     send_order_details_to_deliveryman,
     send_product_details,
     send_products,
 )
-
+from utils import (
+    calculate_delivery_cost,
+    get_actual_auth_token,
+    find_nearest_pizzeria,
+    get_order_details_for_invoice,
+    notify_about_pizza,
+)
 
 (
     HANDLE_MENU,
