@@ -266,7 +266,7 @@ def handle_delivery(update, context):
         chat_id=chat.chat_id,
         title='Оплата заказа из пиццерии',
         description=order_details,
-        payload=f'pizza-bot-payload',
+        payload='pizza-bot-payload',
         provider_token=context.bot_data['payment_token'],
         currency='RUB',
         need_name=True,

@@ -52,24 +52,19 @@ def format_product_details(product_details):
         formatted product data for API
     """
     slugified_name = slugify(product_details['name'])
+    food_value = product_details['food_value']
+
     description = dedent(
-        '''\
-            {}
+        f'''\
+            {product_details['description']}
 
             Пищевая ценность:
-            Жиры: {}
-            Протеины: {}
-            Углеводы: {}
-            Ккал: {}
-            Вес: {}
-        '''.format(
-            product_details['description'],
-            (food_value := product_details['food_value'])['fats'],
-            food_value['proteins'],
-            food_value['carbohydrates'],
-            food_value['kiloCalories'],
-            food_value['weight'],
-        )
+            Жиры: {food_value['fats']}
+            Протеины: {food_value['proteins']}
+            Углеводы: {food_value['carbohydrates']}
+            Ккал: {food_value['kiloCalories']}
+            Вес: {food_value['weight']}
+        '''
     )
 
     data = {
@@ -77,7 +72,7 @@ def format_product_details(product_details):
             'type': 'product',
             'name': product_details['name'],
             'slug': slugified_name,
-            'sku': '{}-{}'.format(slugified_name, product_details['id']),
+            'sku': f'{slugified_name}-{product_details["id"]}',
             'description': description,
             'manage_stock': False,
             'price': [
