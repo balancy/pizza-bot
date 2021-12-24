@@ -8,7 +8,6 @@ from api.moltin_api_requests import (
     fetch_cart_items,
     fetch_entries,
 )
-from output_format import format_order_details_for_invoice
 
 
 NOTIFICATION_ABOUT_PIZZA = textwrap.dedent(
@@ -124,7 +123,11 @@ def get_order_details_for_invoice(cart_id, context):
     """
     auth_token = get_actual_auth_token(context)
     cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
-    order_details = format_order_details_for_invoice(cart)
+
+    order_details = ''.join(
+        '{}: {} шт; '.format(cart_item['name'], cart_item['quantity'])
+        for cart_item in cart['data']
+    )
 
     total_amount = cart['meta']['display_price']['without_tax']['amount']
     return (order_details, total_amount)

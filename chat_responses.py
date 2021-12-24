@@ -4,8 +4,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 from api.moltin_api_requests import fetch_image_by_id, fetch_cart_items
 from output_format import (
-    format_cart_item_for_display,
-    format_order_for_deliveryman,
+    format_cart_item,
+    format_order,
 )
 from utils import calculate_delivery_cost, get_actual_auth_token
 
@@ -86,7 +86,7 @@ def send_cart(cart, chat):
         chat: telegram chat instance to send cart items to
     """
     bot_reply = ''.join(
-        format_cart_item_for_display(cart_item) for cart_item in cart['data']
+        format_cart_item(cart_item) for cart_item in cart['data']
     )
 
     keyboard = [
@@ -203,7 +203,7 @@ def send_order_details_to_deliveryman(cart_id, context, delivery_cost):
     """
     auth_token = get_actual_auth_token(context)
     cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
-    cart_formatted = format_order_for_deliveryman(cart, delivery_cost)
+    cart_formatted = format_order(cart, delivery_cost)
 
     nearest_pizzeria = context.user_data['nearest_pizzeria']
     client_coordinates = context.user_data['client_coordinates']

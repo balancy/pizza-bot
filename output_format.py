@@ -1,7 +1,7 @@
 import textwrap
 
 
-def format_cart_item_for_display(cart_item):
+def format_cart_item(cart_item):
     """Transfrom cart item dicionary to formatted string
 
     Args:
@@ -26,7 +26,7 @@ def format_cart_item_for_display(cart_item):
     )
 
 
-def format_order_for_deliveryman(cart, delivery_cost):
+def format_order(cart, delivery_cost):
     """Format order details for deliveryman
 
     Args:
@@ -51,19 +51,4 @@ def format_order_for_deliveryman(cart, delivery_cost):
     return '{}\n<strong>Всего к оплате: {} рублей</strong>'.format(
         cart_positions,
         total_amount,
-    )
-
-
-def format_order_details_for_invoice(cart):
-    """Format order details for payment invoice
-
-    Args:
-        cart (dictionary): client current cart as order details
-
-    Returns:
-        str: order details in formatted form
-    """
-    return ''.join(
-        '{}: {} шт; '.format(cart_item['name'], cart_item['quantity'])
-        for cart_item in cart['data']
     )
