@@ -228,10 +228,14 @@ def handle_address_or_location(update, context):
     context.user_data['nearest_pizzeria'] = nearest_pizzeria
     send_delivery_options(nearest_pizzeria, update.message)
 
-    auth_token = get_actual_auth_token(context, is_credentials=True)
-    client_coordinates = {'latitude': position[0], 'longitude': position[1]}
-    context.user_data['client_coordinates'] = client_coordinates
-    upload_entry(auth_token, client_coordinates, 'customer_address')
+    if None not in position:
+        auth_token = get_actual_auth_token(context, is_credentials=True)
+        client_coordinates = {
+            'latitude': position[0],
+            'longitude': position[1],
+        }
+        context.user_data['client_coordinates'] = client_coordinates
+        upload_entry(auth_token, client_coordinates, 'customer_address')
 
     return HANDLE_COORDINATES
 

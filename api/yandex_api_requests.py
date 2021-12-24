@@ -30,7 +30,7 @@ def fetch_coordinates(apikey: str, address: str) -> Optional[tuple]:
     ]
 
     if not found_places:
-        return
+        return (None, None)
 
     most_relevant = found_places[0]
     lon, lat = most_relevant['GeoObject']['Point']['pos'].split()
