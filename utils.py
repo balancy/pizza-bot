@@ -100,12 +100,12 @@ def find_nearest_pizzeria(auth_token, client_coordinates):
         key=lambda x: x['distance'],
     )
 
-    keys_to_keep = ('address', 'distance', 'deliveryman_telegram_id')
+    attibutes_to_keep = ('address', 'distance', 'deliveryman_telegram_id')
 
     pizzeria_essential_info = {
-        key: value
-        for key, value in nearest_pizzeria.items()
-        if key in keys_to_keep
+        pizzeria_attribute: attribute_value
+        for pizzeria_attribute, attribute_value in nearest_pizzeria.items()
+        if pizzeria_attribute in attibutes_to_keep
     }
 
     return pizzeria_essential_info
