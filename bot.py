@@ -1,3 +1,4 @@
+from functools import partial
 import os
 import time
 from textwrap import dedent
@@ -35,8 +36,8 @@ from chat_responses import (
 )
 from utils import (
     calculate_delivery_cost,
-    get_actual_auth_token,
     find_nearest_pizzeria,
+    get_actual_auth_token,
     get_order_details_for_invoice,
     notify_about_pizza,
 )
@@ -176,10 +177,9 @@ def wait_email(update, context):
 
     try:
         create_customer(token=auth_token, email=email)
+        bot_reply = f'Пользователь с email {email} зарегистрирован.'
     except EntityExistsError:
         bot_reply = f'Пользователь с email {email} уже зарегистрирован.'
-    else:
-        bot_reply = f'Пользователь с email {email} зарегистрирован.'
 
     next_request = 'Пришлите нам Ваш адрес текстом или геолокацию.'
     chat.reply_text('{}\n{}'.format(bot_reply, next_request))
@@ -307,23 +307,31 @@ def handle_payment(update, context):
 
     if delivery_option == 'pickup':
         pizzeria_address = context.user_data['nearest_pizzeria']['address']
-        bot_reply = dedent(
-            f"""
+
+        update.message.reply_text(
+            dedent(
+                f"""
             Вы можете забрать Ваз заказ по адресу: {pizzeria_address}.
             Спасибо за заказ!"""
+            )
         )
-
-        update.message.reply_text(bot_reply)
-
         return ConversationHandler.END
 
     distance = context.user_data['nearest_pizzeria']['distance']
-    delivery_cost = calculate_delivery_cost(distance)
+    deliver_cost = calculate_delivery_cost(distance)
+    client_coordinates = context.user_data['client_coordinates']
+    nearest_pizzeria = context.user_data['nearest_pizzeria']
+    auth_token = get_actual_auth_token(context)
+
     send_order_details_to_deliveryman(
         cart_id=chat.chat_id,
-        context=context,
-        delivery_cost=delivery_cost,
+        auth_token=auth_token,
+        pizzeria=nearest_pizzeria,
+        client_coordinates=client_coordinates,
+        delivery_cost=deliver_cost,
+        chat=context.bot,
     )
+
     context.job_queue.run_once(notify_about_pizza, 3600, context=chat.chat_id)
 
     bot_reply = 'Информация о заказе передана курьеру. Спасибо за заказ!'

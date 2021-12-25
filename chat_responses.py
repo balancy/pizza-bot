@@ -7,7 +7,7 @@ from output_format import (
     format_cart_item,
     format_order,
 )
-from utils import calculate_delivery_cost, get_actual_auth_token
+from utils import calculate_delivery_cost
 
 
 def send_products(products, chat):
@@ -193,29 +193,29 @@ def send_delivery_options(nearest_pizzeria, chat):
     )
 
 
-def send_order_details_to_deliveryman(cart_id, context, delivery_cost):
+def send_order_details_to_deliveryman(cart_id, auth_token, pizzeria, client_coordinates, delivery_cost, chat):
     """Sends order details to the deliveryman
 
     Args:
         cart_id (str): id of client cart
-        context: bot context
+        auth_token: authentication token
+        pizzeria: nearest pizzeria
+        client_coordinates: client coordinates (lat, lon)
         delivery_cost: cost of delivery in rubles
+        chat: chat to send order details to
     """
-    auth_token = get_actual_auth_token(context)
     cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
     cart_formatted = format_order(cart, delivery_cost)
 
-    nearest_pizzeria = context.user_data['nearest_pizzeria']
-    client_coordinates = context.user_data['client_coordinates']
-    deliveryman_tg_id = nearest_pizzeria['deliveryman_telegram_id']
+    deliveryman_tg_id = pizzeria['deliveryman_telegram_id']
 
     bot_reply = (
         f'<strong>Заказ от клиента {cart_id}</strong>\n\n{cart_formatted}'
     )
 
-    context.bot.send_message(
+    chat.send_message(
         deliveryman_tg_id,
         text=bot_reply,
         parse_mode=ParseMode.HTML,
     )
-    context.bot.send_location(deliveryman_tg_id, **client_coordinates)
+    chat.send_location(deliveryman_tg_id, **client_coordinates)

@@ -130,10 +130,10 @@ def get_order_details_for_invoice(cart_id, context):
 
 def notify_about_pizza(context):
     """Notifies client about not delivered pizza
-
     Args:
         context: bot context
     """
     context.bot.send_message(
         context.job.context,
+        message=NOTIFICATION_ABOUT_PIZZA,
     )
