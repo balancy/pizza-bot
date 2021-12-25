@@ -229,7 +229,7 @@ def handle_address_or_location(update, context):
     send_delivery_options(nearest_pizzeria, update.message)
 
     if None not in position:
-        auth_token = get_actual_auth_token(context, is_credentials=True)
+        auth_token = get_actual_auth_token(context)
         client_coordinates = {
             'latitude': position[0],
             'longitude': position[1],

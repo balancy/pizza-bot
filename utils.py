@@ -37,35 +37,30 @@ def calculate_delivery_cost(distance):
     return 0
 
 
-def get_actual_auth_token(context, is_credentials=False):
+def get_actual_auth_token(context):
     """Gets actual valid auth token. Returns current token from bot context if
     it's not yet expired, otherwise refreshes it in the context by requesting
     API and returns updated token.
 
     Args:
         context: bot context
-        is_credentials: if token needs to be of 'client_credentials' type
 
     Returns:
         actual valid auth token
     """
 
-    prefix = 'credentials' if is_credentials else 'implicit'
-
-    expires = context.bot_data[f'{prefix}_token_expires']
+    expires = context.bot_data['token_expires']
 
     if expires - time.time() > 10:
-        return context.bot_data[f'{prefix}_auth_token']
+        return context.bot_data[f'auth_token']
 
     client_id = context.bot_data['client_id']
     client_secret = context.bot_data['client_secret']
 
-    params = (client_id, client_secret) if is_credentials else (client_id,)
+    token_details = fetch_auth_token(client_id, client_secret)
 
-    token_details = fetch_auth_token(*params)
-
-    context.bot_data[f'{prefix}_token_expires'] = token_details['expires']
-    context.bot_data[f'{prefix}_auth_token'] = token_details['access_token']
+    context.bot_data['token_expires'] = token_details['expires']
+    context.bot_data['auth_token'] = token_details['access_token']
 
     return token_details['access_token']
 
