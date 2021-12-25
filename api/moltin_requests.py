@@ -3,7 +3,7 @@ import json
 import requests
 from slugify import slugify
 
-from helpers.items_formatting import format_product
+from helpers.items_formatters import format_product
 
 API_ROOT = 'https://api.moltin.com'
 
@@ -34,10 +34,7 @@ def fetch_auth_token(client_id, client_secret=None):
             'grant_type': 'implicit',
         }
 
-    response = requests.post(
-        f'{API_ROOT}/oauth/access_token',
-        data=data,
-    )
+    response = requests.post(f'{API_ROOT}/oauth/access_token', data=data)
     response.raise_for_status()
 
     return response.json()
@@ -288,10 +285,7 @@ def fetch_products(token):
     """
     headers = {'Authorization': f'Bearer {token}'}
 
-    response = requests.get(
-        f'{API_ROOT}/v2/products',
-        headers=headers,
-    )
+    response = requests.get(f'{API_ROOT}/v2/products', headers=headers)
     response.raise_for_status()
 
     return response.json()

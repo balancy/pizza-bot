@@ -15,7 +15,7 @@ from telegram.ext import (
     Updater,
 )
 
-from api.moltin_api_requests import (
+from api.moltin_requests import (
     add_product_to_cart,
     create_customer,
     fetch_cart_items,
@@ -26,20 +26,20 @@ from api.moltin_api_requests import (
     EntityExistsError,
 )
 from api.yandex_api_requests import fetch_coordinates
-from helpers.chat_replies import (
+from helpers.chat_replying import (
     send_cart,
     send_delivery_options,
     send_order_details,
     send_product_details,
     send_products,
 )
-from helpers.utils import (
+from helpers.delivery import (
     calculate_delivery_cost,
     find_nearest_pizzeria,
-    get_actual_auth_token,
     get_order_details_for_invoice,
     notify_about_pizza,
 )
+from helpers.token_handers import get_actual_auth_token
 
 (
     HANDLE_MENU,

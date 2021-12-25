@@ -2,13 +2,13 @@ import textwrap
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
-from api.moltin_api_requests import fetch_image_by_id, fetch_cart_items
-from helpers.items_formatting import (
+from api.moltin_requests import fetch_image_by_id, fetch_cart_items
+from helpers.items_formatters import (
     format_cart_item,
     format_delivery_options,
     format_order,
 )
-from helpers.utils import calculate_delivery_cost
+from helpers.delivery import calculate_delivery_cost
 
 
 def send_products(products, chat):

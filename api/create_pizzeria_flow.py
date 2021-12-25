@@ -2,13 +2,13 @@ import os
 
 from dotenv import load_dotenv
 
-from moltin_api_requests import (
+from api.moltin_requests import (
     create_flow,
     create_flow_field,
     fetch_auth_token,
 )
 
-ADDRESSES_FILE = 'addresses.json'
+ADDRESSES_FILE = 'api/addresses.json'
 
 
 if __name__ == '__main__':
