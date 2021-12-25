@@ -367,10 +367,8 @@ if __name__ == '__main__':
     dp.bot_data['client_secret'] = os.getenv('CLIENT_SECRET')
     dp.bot_data['yandex_token'] = os.getenv('YANDEX_API_TOKEN')
     dp.bot_data['payment_token'] = os.getenv('PAYMENT_PROVIDER_TOKEN')
-    dp.bot_data['implicit_auth_token'] = ''
-    dp.bot_data['credentials_auth_token'] = ''
-    dp.bot_data['implicit_token_expires'] = time.time()
-    dp.bot_data['credentials_token_expires'] = time.time()
+    dp.bot_data['auth_token'] = ''
+    dp.bot_data['token_expires'] = time.time()
 
     handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
