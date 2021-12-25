@@ -3,11 +3,12 @@ import textwrap
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 from api.moltin_api_requests import fetch_image_by_id, fetch_cart_items
-from output_format import (
+from helpers.items_formatting import (
     format_cart_item,
+    format_delivery_options,
     format_order,
 )
-from utils import calculate_delivery_cost
+from helpers.utils import calculate_delivery_cost
 
 
 def send_products(products, chat):
@@ -39,19 +40,17 @@ def send_product_details(product, chat, auth_token):
     product_image_url = product_image['link']['href']
 
     product_id = product['id']
-    product_name = product['name']
     product_price = product['meta']['display_price']['without_tax']['amount']
-    product_description = product['description']
 
     caption = textwrap.dedent(
         f"""
-        <strong>{product_name}</strong>
+        <strong>{product['name']}</strong>
 
         Стоимость: {product_price} рублей
 
         """
     )
-    caption = f'{caption}{product_description}'
+    caption = f'{caption}{product["description"]}'
 
     keyboard = [
         [
@@ -133,67 +132,29 @@ def send_delivery_options(nearest_pizzeria, chat):
     distance = nearest_pizzeria['distance']
     delivery_cost = calculate_delivery_cost(distance)
 
-    keyboard = [
-        [
-            InlineKeyboardButton('Самовывоз', callback_data='pickup'),
-        ],
-    ]
+    bot_reply = format_delivery_options(
+        distance=distance,
+        pizzeria_address=nearest_pizzeria['address'],
+        delivery_cost=delivery_cost,
+    )
+    keyboard = [[InlineKeyboardButton('Самовывоз', callback_data='pickup')]]
 
     if distance > 20:
         return chat.reply_text(
-            textwrap.dedent(
-                f"""
-                Простите, но так далеко мы пиццу не доставляем. Ближайшая
-                пиццерия находится в {distance:.1f} километрах от Вас! Возможен
-                только самовывоз
-                """
-            ),
+            bot_reply,
             reply_markup=InlineKeyboardMarkup(keyboard),
         )
 
     keyboard.append(
-        [
-            InlineKeyboardButton('Доставка', callback_data='delivery'),
-        ],
+        [InlineKeyboardButton('Доставка', callback_data='delivery')]
     )
 
-    if distance <= 0.5:
-        return chat.reply_text(
-            textwrap.dedent(
-                f"""
-                Может, заберете пиццу из нашей пиццерии неподалёку?
-                Она всего в {round(distance * 1000)} метрах от вас!
-                Вот её адрес: {nearest_pizzeria['address']}.
-
-                Также возможен вариант бесплатной доставки.
-                """
-            ),
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
-
-    if distance <= 5:
-        return chat.reply_text(
-            textwrap.dedent(
-                f"""
-                Похоже, придётся ехать до Вас на самокате. Доставка
-                будет стоить {delivery_cost} рублей. Доставляем или самовывоз?
-                """
-            ),
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
-
-    return chat.reply_text(
-        textwrap.dedent(
-            f"""
-            Похоже, придётся ехать до Вас на авто. Доставка будет
-            стоить {delivery_cost} рублей. Доставляем или самовывоз?
-            """
-        ),
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+    chat.reply_text(bot_reply, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
-def send_order_details_to_deliveryman(cart_id, auth_token, pizzeria, client_coordinates, delivery_cost, chat):
+def send_order_details(
+    cart_id, auth_token, pizzeria, client_coordinates, delivery_cost, chat
+):
     """Sends order details to the deliveryman
 
     Args:

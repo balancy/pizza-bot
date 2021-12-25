@@ -1,4 +1,3 @@
-from functools import partial
 import os
 import time
 from textwrap import dedent
@@ -27,14 +26,14 @@ from api.moltin_api_requests import (
     EntityExistsError,
 )
 from api.yandex_api_requests import fetch_coordinates
-from chat_responses import (
+from helpers.chat_replies import (
     send_cart,
     send_delivery_options,
-    send_order_details_to_deliveryman,
+    send_order_details,
     send_product_details,
     send_products,
 )
-from utils import (
+from helpers.utils import (
     calculate_delivery_cost,
     find_nearest_pizzeria,
     get_actual_auth_token,
@@ -323,7 +322,7 @@ def handle_payment(update, context):
     nearest_pizzeria = context.user_data['nearest_pizzeria']
     auth_token = get_actual_auth_token(context)
 
-    send_order_details_to_deliveryman(
+    send_order_details(
         cart_id=chat.chat_id,
         auth_token=auth_token,
         pizzeria=nearest_pizzeria,

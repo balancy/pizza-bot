@@ -69,14 +69,14 @@ def format_product(product_details):
 
     description = textwrap.dedent(
         f'''\
-            {product_details['description']}
+        {product_details['description']}
 
-            Пищевая ценность:
-            Жиры: {nutritional_value['fats']}
-            Протеины: {nutritional_value['proteins']}
-            Углеводы: {nutritional_value['carbohydrates']}
-            Ккал: {nutritional_value['kiloCalories']}
-            Вес: {nutritional_value['weight']}
+        Пищевая ценность:
+        Жиры: {nutritional_value['fats']}
+        Протеины: {nutritional_value['proteins']}
+        Углеводы: {nutritional_value['carbohydrates']}
+        Ккал: {nutritional_value['kiloCalories']}
+        Вес: {nutritional_value['weight']}
         '''
     )
 
@@ -101,3 +101,40 @@ def format_product(product_details):
     }
 
     return data
+
+
+def format_delivery_options(distance, pizzeria_address, delivery_cost):
+    if distance > 20:
+        return textwrap.dedent(
+            f"""
+            Простите, но так далеко мы пиццу не доставляем. Ближайшая
+            пиццерия находится в {distance:.1f} километрах от Вас! Возможен
+            только самовывоз.
+            """
+        )
+
+    if distance <= 0.5:
+        return textwrap.dedent(
+            f"""
+            Может, заберете пиццу из нашей пиццерии неподалёку?
+            Она всего в {round(distance * 1000)} метрах от вас!
+            Вот её адрес: {pizzeria_address}.
+
+            Также возможен вариант бесплатной доставки.
+            """
+        )
+
+    if distance <= 5:
+        return textwrap.dedent(
+            f"""
+            Похоже, придётся ехать до Вас на самокате. Доставка
+            будет стоить {delivery_cost} рублей. Доставляем или самовывоз?
+            """
+        )
+
+    return textwrap.dedent(
+        f"""
+        Похоже, придётся ехать до Вас на авто. Доставка будет
+        стоить {delivery_cost} рублей. Доставляем или самовывоз?
+        """
+    )
