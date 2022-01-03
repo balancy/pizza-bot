@@ -1,6 +1,6 @@
 # PIZZA SHOP BOT
 
-![gif](https://s10.gifyu.com/images/pizza_bot.gif)
+![gif](pizza_bot.gif)
 
 App represents telegram bot for customers of imagined "Pizza Shop". "Pizza shop" is a test online shop with data hosted on [Elasticpath](https://www.elasticpath.com/) e-commerce platform.
 
