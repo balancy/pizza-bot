@@ -12,7 +12,7 @@ class EntityExistsError(requests.models.HTTPError):
     pass
 
 
-def fetch_auth_token(client_id, client_secret=None):
+def fetch_auth_token(client_id, client_secret):
     """Make an API request to fetch bearer token
 
     Args:
@@ -22,17 +22,11 @@ def fetch_auth_token(client_id, client_secret=None):
     Returns:
         API response containing authorization token
     """
-    if client_secret:
-        data = {
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'grant_type': 'client_credentials',
-        }
-    else:
-        data = {
-            'client_id': client_id,
-            'grant_type': 'implicit',
-        }
+    data = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'grant_type': 'client_credentials',
+    }
 
     response = requests.post(f'{API_ROOT}/oauth/access_token', data=data)
     response.raise_for_status()

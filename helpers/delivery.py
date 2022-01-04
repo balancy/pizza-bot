@@ -3,7 +3,6 @@ import textwrap
 from geopy import distance
 
 from api.moltin_requests import fetch_cart_items, fetch_entries
-from helpers.token_handers import get_actual_auth_token
 
 
 NOTIFICATION_ABOUT_PIZZA = textwrap.dedent(
@@ -84,7 +83,8 @@ def get_order_details_for_invoice(cart_id, context):
     Returns:
         tuple: order details and total invoice amount
     """
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
+
     cart = fetch_cart_items(auth_token, f'pizza_{cart_id}')
 
     order_details = ''.join(

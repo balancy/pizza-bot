@@ -3,29 +3,23 @@ import time
 from api.moltin_requests import fetch_auth_token
 
 
-def get_actual_auth_token(context):
-    """Gets actual valid auth token. Returns current token from bot context if
-    it's not yet expired, otherwise refreshes it in the context by requesting
-    API and returns updated token.
+class AuthToken:
+    def __init__(self, client_id, client_secret):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.token_expires = time.time()
+        self.auth_token = ''
 
-    Args:
-        context: bot context
+    @property
+    def token(self):
+        if self.token_expires - time.time() > 10:
+            return self.auth_token
 
-    Returns:
-        actual valid auth token
-    """
+        self.__refresh_token()
 
-    expires = context.bot_data['token_expires']
+        return self.auth_token
 
-    if expires - time.time() > 10:
-        return context.bot_data[f'auth_token']
-
-    client_id = context.bot_data['client_id']
-    client_secret = context.bot_data['client_secret']
-
-    token_details = fetch_auth_token(client_id, client_secret)
-
-    context.bot_data['token_expires'] = token_details['expires']
-    context.bot_data['auth_token'] = token_details['access_token']
-
-    return token_details['access_token']
+    def __refresh_token(self):
+        token_details = fetch_auth_token(self.client_id, self.client_secret)
+        self.token_expires = token_details['expires']
+        self.auth_token = token_details['access_token']

@@ -39,7 +39,7 @@ from helpers.delivery import (
     get_order_details_for_invoice,
     notify_about_pizza,
 )
-from helpers.token_handers import get_actual_auth_token
+from helpers.token_handers import AuthToken
 
 (
     HANDLE_MENU,
@@ -60,7 +60,7 @@ def start(update, context):
     chat = update.message
     chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
 
     products = fetch_products(auth_token)
     send_products(products, chat)
@@ -78,7 +78,7 @@ def handle_menu(update, context):
     chat = update.callback_query.message
     chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
 
     if query == 'Cart':
         cart = fetch_cart_items(auth_token, 'pizza_{}'.format(chat.chat_id))
@@ -102,7 +102,7 @@ def handle_description(update, context):
     chat = update.callback_query.message
     chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
 
     if query == 'Back to menu':
         products = fetch_products(auth_token)
@@ -139,7 +139,7 @@ def handle_cart(update, context):
     chat = update.callback_query.message
     chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
 
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
 
     if query == 'Back to menu':
         products = fetch_products(auth_token)
@@ -172,7 +172,7 @@ def wait_email(update, context):
     chat.bot.delete_message(chat.chat_id, message_id=chat.message_id)
     email = chat.text
 
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
 
     try:
         create_customer(token=auth_token, email=email)
@@ -207,7 +207,7 @@ def handle_address_or_location(update, context):
     Returns:
         next bot state for user
     """
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
     yandex_token = context.bot_data['yandex_token']
 
     if location := update.message.location:
@@ -228,7 +228,6 @@ def handle_address_or_location(update, context):
     send_delivery_options(nearest_pizzeria, update.message)
 
     if None not in position:
-        auth_token = get_actual_auth_token(context)
         client_coordinates = {
             'latitude': position[0],
             'longitude': position[1],
@@ -320,7 +319,7 @@ def handle_payment(update, context):
     deliver_cost = calculate_delivery_cost(distance)
     client_coordinates = context.user_data['client_coordinates']
     nearest_pizzeria = context.user_data['nearest_pizzeria']
-    auth_token = get_actual_auth_token(context)
+    auth_token = context.bot_data['auth_token'].token
 
     send_order_details(
         cart_id=chat.chat_id,
@@ -357,18 +356,17 @@ if __name__ == '__main__':
     load_dotenv()
 
     bot_token = os.getenv('TG_PIZZA_BOT_TOKEN')
+    client_id = os.getenv('CLIENT_ID')
+    client_secret = os.getenv('CLIENT_SECRET')
 
     persistence = PicklePersistence(filename='conversationbot')
     updater = Updater(bot_token, use_context=True, persistence=persistence)
     jq = updater.job_queue
 
     dp = updater.dispatcher
-    dp.bot_data['client_id'] = os.getenv('CLIENT_ID')
-    dp.bot_data['client_secret'] = os.getenv('CLIENT_SECRET')
     dp.bot_data['yandex_token'] = os.getenv('YANDEX_API_TOKEN')
     dp.bot_data['payment_token'] = os.getenv('PAYMENT_PROVIDER_TOKEN')
-    dp.bot_data['auth_token'] = ''
-    dp.bot_data['token_expires'] = time.time()
+    dp.bot_data['auth_token'] = AuthToken(client_id, client_secret)
 
     handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
