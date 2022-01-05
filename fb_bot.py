@@ -21,7 +21,6 @@ def start():
     client_secret = os.getenv('CLIENT_SECRET')
     fb_token = os.getenv('PAGE_ACCESS_TOKEN')
     verify_token = os.getenv('VERIFY_TOKEN')
-
     auth_token = AuthToken(client_id, client_secret)
 
 
@@ -50,8 +49,7 @@ def webhook():
                     sender_id = messaging_event["sender"]["id"]
                     recipient_id = messaging_event["recipient"]["id"]
                     message_text = messaging_event["message"]["text"]
-                    print('here')
-                    send_button(sender_id)
+                    send_menu(sender_id, auth_token.token)
     return "ok", 200
 
 
@@ -96,11 +94,6 @@ def get_menu_element(product):
         'image_url': 'https://laroma-pizza.fr/wp-content/uploads/2021/06/'
         'pizza-homepage.png',
         'subtitle': product['description'],
-        'default_action': {
-            'type': 'web_url',
-            'url': 'https://www.originalcoastclothing.com/',
-            'webview_height_ratio': 'tall',
-        },
         'buttons': [
             {
                 'type': 'postback',
@@ -111,14 +104,13 @@ def get_menu_element(product):
     }
 
 
-def send_menu(recipient_id):
+def send_menu(recipient_id, auth_token):
     params = {'access_token': fb_token}
     headers = {'Content-Type': 'application/json'}
 
-    auth_token = auth_token.token
     products = fetch_products(auth_token)
 
-    elements = [get_menu_element(product) for product in products['data']]
+    elements = [get_menu_element(product) for product in products['data'][:5]]
 
     request_content = {
         'recipient': {'id': recipient_id},
