@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from flask import Flask, request
 import requests
 
-from api.moltin_requests import fetch_products
+from api.moltin_requests import fetch_image_by_id, fetch_products
 from helpers.token_handers import AuthToken
 
 
@@ -86,13 +86,14 @@ def send_button(recipient_id):
     response.raise_for_status()
 
 
-def get_menu_element(product):
+def get_menu_element(product, auth_token):
     product_price = product['meta']['display_price']['without_tax']['amount']
+    product_image_id = product['relationships']['main_image']['data']['id']
+    product_image = fetch_image_by_id(auth_token, product_image_id)['data']
 
     return {
         'title': f'{product["name"]} ({product_price} р.)',
-        'image_url': 'https://laroma-pizza.fr/wp-content/uploads/2021/06/'
-        'pizza-homepage.png',
+        'image_url': product_image['link']['href'],
         'subtitle': product['description'],
         'buttons': [
             {
@@ -110,7 +111,10 @@ def send_menu(recipient_id, auth_token):
 
     products = fetch_products(auth_token)
 
-    elements = [get_menu_element(product) for product in products['data'][:5]]
+    elements = [
+        get_menu_element(product, auth_token)
+        for product in products['data'][:5]
+    ]
 
     request_content = {
         'recipient': {'id': recipient_id},
