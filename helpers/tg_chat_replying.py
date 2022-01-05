@@ -3,7 +3,7 @@ import textwrap
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 from api.moltin_requests import fetch_image_by_id, fetch_cart_items
-from helpers.items_formatters import (
+from helpers.tg_items_formatters import (
     format_cart_item,
     format_delivery_options,
     format_order,

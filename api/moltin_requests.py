@@ -3,7 +3,7 @@ import json
 import requests
 from slugify import slugify
 
-from helpers.items_formatters import format_product
+from helpers.tg_items_formatters import format_product
 
 API_ROOT = 'https://api.moltin.com'
 

@@ -2,9 +2,8 @@ import os
 
 from dotenv import load_dotenv
 from flask import Flask, request
-import requests
 
-from api.moltin_requests import fetch_image_by_id, fetch_products
+from helpers.fb_chat_replying import send_menu
 from helpers.token_handers import AuthToken
 
 
@@ -49,106 +48,5 @@ def webhook():
                     sender_id = messaging_event["sender"]["id"]
                     recipient_id = messaging_event["recipient"]["id"]
                     message_text = messaging_event["message"]["text"]
-                    send_menu(sender_id, auth_token.token)
+                    send_menu(sender_id, auth_token.token, fb_token)
     return "ok", 200
-
-
-def send_button(recipient_id):
-    params = {'access_token': fb_token}
-    headers = {'Content-Type': 'application/json'}
-
-    request_content = {
-        'recipient': {'id': recipient_id},
-        'message': {
-            'attachment': {
-                'type': 'template',
-                'payload': {
-                    'template_type': 'button',
-                    'text': 'Try the postback button!',
-                    'buttons': [
-                        {
-                            'type': 'postback',
-                            'title': 'Postback Button',
-                            'payload': 'DEVELOPER_DEFINED_PAYLOAD',
-                        }
-                    ],
-                },
-            }
-        },
-    }
-
-    response = requests.post(
-        'https://graph.facebook.com/v2.6/me/messages',
-        headers=headers,
-        params=params,
-        json=request_content,
-    )
-    response.raise_for_status()
-
-
-def get_menu_element(product, auth_token):
-    product_price = product['meta']['display_price']['without_tax']['amount']
-    product_image_id = product['relationships']['main_image']['data']['id']
-    product_image = fetch_image_by_id(auth_token, product_image_id)['data']
-
-    return {
-        'title': f'{product["name"]} ({product_price} р.)',
-        'image_url': product_image['link']['href'],
-        'subtitle': product['description'],
-        'buttons': [
-            {
-                'type': 'postback',
-                'title': 'Добавить в корзину',
-                'payload': f'ADD_{product["id"]}',
-            }
-        ],
-    }
-
-
-def send_menu(recipient_id, auth_token):
-    params = {'access_token': fb_token}
-    headers = {'Content-Type': 'application/json'}
-
-    products = fetch_products(auth_token)
-
-    elements = [
-        get_menu_element(product, auth_token)
-        for product in products['data'][:5]
-    ]
-
-    request_content = {
-        'recipient': {'id': recipient_id},
-        'message': {
-            'attachment': {
-                'type': 'template',
-                'payload': {
-                    'template_type': 'generic',
-                    'elements': elements,
-                },
-            },
-        },
-    }
-
-    response = requests.post(
-        'https://graph.facebook.com/v2.6/me/messages',
-        headers=headers,
-        params=params,
-        json=request_content,
-    )
-    response.raise_for_status()
-
-
-def send_message(recipient_id, message_text):
-    params = {'access_token': fb_token}
-    headers = {'Content-Type': 'application/json'}
-    request_content = {
-        'recipient': {'id': recipient_id},
-        'message': {'text': message_text},
-    }
-    response = requests.post(
-        'https://graph.facebook.com/v2.6/me/messages',
-        params=params,
-        headers=headers,
-        json=request_content,
-    )
-    response.raise_for_status()

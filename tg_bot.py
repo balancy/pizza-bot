@@ -1,5 +1,4 @@
 import os
-import time
 from textwrap import dedent
 
 from dotenv import load_dotenv
@@ -26,7 +25,7 @@ from api.moltin_requests import (
     EntityExistsError,
 )
 from api.yandex_api_requests import fetch_coordinates
-from helpers.chat_replying import (
+from helpers.tg_chat_replying import (
     send_cart,
     send_delivery_options,
     send_order_details,
