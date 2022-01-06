@@ -1,6 +1,6 @@
 from enum import Enum
 
-from api.moltin_requests import add_product_to_cart
+from api.moltin_requests import add_product_to_cart, remove_cart_item_by_id
 from helpers.fb_chat_replying import send_cart, send_menu, send_message
 
 
@@ -22,39 +22,59 @@ def handle_state(
 ):
     if state == State.MENU and message:
         send_menu(sender_id, auth_token, fb_token)
+        return state
 
-    elif payload and state == State.MENU:
-        if 'CATEGORY_ID' in payload:
-            category_id = payload.replace('CATEGORY_ID_', '')
-            send_menu(sender_id, auth_token, fb_token, category_id)
-            return state
+    if 'CATEGORY_ID' in payload and state == State.MENU:
+        category_id = payload.replace('CATEGORY_ID_', '')
+        send_menu(sender_id, auth_token, fb_token, category_id)
+        return state
 
-        elif 'ADD_TO_CART' in payload:
-            product_id = payload.replace('ADD_TO_CART_', '')
-            handle_adding_to_cart(product_id, sender_id, auth_token, fb_token)
-            return state
+    if 'ADD' in payload and state == State.MENU:
+        handle_adding_to_cart(payload, sender_id, auth_token, fb_token)
+        return state
 
-        elif payload == 'CART':
-            send_cart(sender_id, auth_token, fb_token)
-            return State.CART
+    if 'ADD' in payload and state == State.CART:
+        handle_adding_to_cart(payload, sender_id, auth_token, fb_token)
+        send_cart(sender_id, auth_token, fb_token)
+        return state
 
-    elif payload and state == State.CART:
-        if payload == 'BACK_TO_MENU':
-            send_menu(sender_id, auth_token, fb_token)
-            return State.MENU
+    if 'REMOVE' in payload and state == State.CART:
+        handle_removing_from_cart(payload, sender_id, auth_token, fb_token)
+        send_cart(sender_id, auth_token, fb_token)
+        return state
+
+    if payload == 'CART':
+        send_cart(sender_id, auth_token, fb_token)
+        return State.CART
+
+    if payload == 'BACK_TO_MENU' and state == State.CART:
+        send_menu(sender_id, auth_token, fb_token)
+        return State.MENU
 
 
-def handle_adding_to_cart(product_id, sender_id, auth_token, fb_token):
-    cart = add_product_to_cart(
+def handle_adding_to_cart(payload, sender_id, auth_token, fb_token):
+    payload = payload.replace('ADD_TO_CART_', '')
+    product_id, product_name = payload.split('_')
+
+    add_product_to_cart(
         auth_token.token,
         f'fb_pizza_{sender_id}',
         product_id,
         1,
-    )['data']
+    )
+    message = f'В корзину добавлена {product_name}'
+    send_message(sender_id, message, fb_token)
 
-    product_name = list(
-        filter(lambda product: product['product_id'] == product_id, cart)
-    )[0]
 
-    message = f'В корзину добавлена {product_name["name"]}'
+def handle_removing_from_cart(payload, sender_id, auth_token, fb_token):
+    payload = payload.replace('REMOVE_FROM_CART_', '')
+    product_id, product_name = payload.split('_')
+
+    remove_cart_item_by_id(
+        auth_token.token,
+        f'fb_pizza_{sender_id}',
+        product_id,
+    )
+
+    message = f'{product_name} убрана из корзины'
     send_message(sender_id, message, fb_token)

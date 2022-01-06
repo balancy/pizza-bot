@@ -51,7 +51,7 @@ def webhook():
                 sender_id = event['sender']['id']
 
                 if message := event.get('message'):
-                    handle_state(
+                    state = handle_state(
                         state=state,
                         sender_id=sender_id,
                         auth_token=auth_token,

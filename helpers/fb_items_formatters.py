@@ -14,7 +14,7 @@ def format_menu_element(product, auth_token):
             {
                 'type': 'postback',
                 'title': 'Добавить в корзину',
-                'payload': f'ADD_TO_CART_{product["id"]}',
+                'payload': f'ADD_TO_CART_{product["id"]}_{product["name"]}',
             }
         ],
     }
@@ -35,12 +35,14 @@ def format_cart_element(product):
             {
                 'type': 'postback',
                 'title': 'Добавить еще одну',
-                'payload': f'ADD_TO_CART_{product["id"]}',
+                'payload': f'ADD_TO_CART_{product["product_id"]}_'
+                f'{product["name"]}',
             },
             {
                 'type': 'postback',
                 'title': 'Убрать из корзины',
-                'payload': f'REMOVE_FROM_CART_{product["id"]}',
+                'payload': f'REMOVE_FROM_CART_{product["id"]}_'
+                f'{product["name"]}',
             },
         ],
     }
