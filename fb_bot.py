@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 
 from helpers.fb_state_handlers import State, handle_state
 from helpers.token_handers import AuthToken
@@ -23,6 +23,11 @@ def start():
     fb_token = os.getenv('PAGE_ACCESS_TOKEN')
     verify_token = os.getenv('VERIFY_TOKEN')
     state = State.HANDLE_MENU
+
+
+@app.route("/static/<path:path>")
+def static_dir(path):
+    return send_from_directory("static", path)
 
 
 @app.route('/', methods=['GET'])

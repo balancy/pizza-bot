@@ -25,6 +25,7 @@ def format_first_menu_element():
         'title': 'Меню',
         'image_url': 'https://cdn.pixabay.com/photo/2013/07/13/13/18/'
         'pizza-160780_1280.png',
+        # 'image_url': 'static/pizza-logo.png',
         'subtitle': 'Здесь Вы можете выбрать один из вариантов',
         'buttons': [
             {

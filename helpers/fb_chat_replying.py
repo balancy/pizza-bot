@@ -1,10 +1,10 @@
 import requests
 
-from helpers.fb_fetch_helpers import fetch_front_page_menu
+from helpers.fb_fetch_helpers import fetch_menu
 
 
-def send_menu(recipient_id, auth_token, fb_token):
-    front_page_menu = fetch_front_page_menu(auth_token)
+def send_menu(recipient_id, auth_token, fb_token, category_id=None):
+    menu = fetch_menu(auth_token, category_id)
 
     params = {'access_token': fb_token}
     headers = {'Content-Type': 'application/json'}
@@ -16,7 +16,7 @@ def send_menu(recipient_id, auth_token, fb_token):
                 'type': 'template',
                 'payload': {
                     'template_type': 'generic',
-                    'elements': front_page_menu,
+                    'elements': menu,
                 },
             },
         },

@@ -24,11 +24,17 @@ def handle_state(
     if state == State.HANDLE_MENU and message is not None:
         send_menu(sender_id, auth_token, fb_token)
     elif payload is not None:
-        product_id = payload.replace('ADD_TO_CART_', '')
-        cart = add_product_to_cart(
-            auth_token.token,
-            f'pizza_{sender_id}',
-            product_id,
-            1,
-        )
+        if state == State.HANDLE_MENU:
+            category_id = payload.replace('CATEGORY_ID_', '')
+            send_menu(sender_id, auth_token, fb_token, category_id)
+            return state
+
+
+        # product_id = payload.replace('ADD_TO_CART_', '')
+        # cart = add_product_to_cart(
+        #     auth_token.token,
+        #     f'pizza_{sender_id}',
+        #     product_id,
+        #     1,
+        # )
         # print(cart)

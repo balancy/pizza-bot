@@ -6,20 +6,25 @@ from helpers.fb_items_formatters import (
 )
 
 
-def fetch_front_page_menu(auth_token):
+def fetch_menu(auth_token, category_id):
     categories = fetch_categories(auth_token.token)['data']
 
-    first_category = next(
-        filter(lambda category: category['slug'] == 'front_page', categories)
-    )
+    if not category_id:
+        displaying_category = next(
+            filter(
+                lambda category: category['slug'] == 'front_page',
+                categories,
+            )
+        )
+        category_id = displaying_category.get('id')
 
     other_categories = list(
-        filter(lambda category: category['slug'] != 'front_page', categories)
+        filter(lambda category: category['id'] != category_id, categories)
     )
 
-    products = fetch_products_by_category_id(
-        auth_token.token, first_category.get('id')
-    )['data']
+    products = fetch_products_by_category_id(auth_token.token, category_id)[
+        'data'
+    ]
 
     products_formatted = [
         format_menu_element(product, auth_token.token) for product in products
