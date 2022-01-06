@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, request, send_from_directory
+from flask import Flask, request
 
 from helpers.fb_state_handlers import State, handle_state
 from helpers.token_handers import AuthToken
@@ -22,12 +22,7 @@ def start():
 
     fb_token = os.getenv('PAGE_ACCESS_TOKEN')
     verify_token = os.getenv('VERIFY_TOKEN')
-    state = State.HANDLE_MENU
-
-
-@app.route("/static/<path:path>")
-def static_dir(path):
-    return send_from_directory("static", path)
+    state = State.MENU
 
 
 @app.route('/', methods=['GET'])
@@ -47,11 +42,14 @@ def verify():
 def webhook():
     """Webhook to handle facebook messages."""
 
+    global state
     data = request.get_json()
+
     if data['object'] == 'page':
         for entry in data['entry']:
             for event in entry['messaging']:
                 sender_id = event['sender']['id']
+
                 if message := event.get('message'):
                     handle_state(
                         state=state,
@@ -60,8 +58,9 @@ def webhook():
                         fb_token=fb_token,
                         message=message['text'],
                     )
+
                 elif postback := event.get('postback'):
-                    handle_state(
+                    state = handle_state(
                         state=state,
                         sender_id=sender_id,
                         auth_token=auth_token,

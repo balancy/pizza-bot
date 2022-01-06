@@ -1,5 +1,11 @@
-from api.moltin_requests import fetch_categories, fetch_products_by_category_id
+from api.moltin_requests import (
+    fetch_cart_items,
+    fetch_categories,
+    fetch_products_by_category_id,
+)
 from helpers.fb_items_formatters import (
+    format_cart_element,
+    format_first_cart_element,
     format_first_menu_element,
     format_last_menu_element,
     format_menu_element,
@@ -37,3 +43,16 @@ def fetch_menu(auth_token, category_id):
     ]
 
     return front_page_menu
+
+
+def fetch_cart(auth_token, recepient_id):
+    cart = fetch_cart_items(auth_token.token, f'fb_pizza_{recepient_id}')
+
+    cart_items_formatted = [format_cart_element(item) for item in cart['data']]
+
+    total_price = cart['meta']['display_price']['without_tax']['amount']
+
+    return [
+        format_first_cart_element(total_price),
+        *cart_items_formatted,
+    ]

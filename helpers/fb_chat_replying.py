@@ -1,6 +1,6 @@
 import requests
 
-from helpers.fb_fetch_helpers import fetch_menu
+from helpers.fb_fetch_helpers import fetch_cart, fetch_menu
 
 
 def send_menu(recipient_id, auth_token, fb_token, category_id=None):
@@ -31,7 +31,9 @@ def send_menu(recipient_id, auth_token, fb_token, category_id=None):
     response.raise_for_status()
 
 
-def send_button(recipient_id, fb_token):
+def send_cart(recipient_id, auth_token, fb_token):
+    cart = fetch_cart(auth_token, recipient_id)
+
     params = {'access_token': fb_token}
     headers = {'Content-Type': 'application/json'}
 
@@ -41,17 +43,10 @@ def send_button(recipient_id, fb_token):
             'attachment': {
                 'type': 'template',
                 'payload': {
-                    'template_type': 'button',
-                    'text': 'Try the postback button!',
-                    'buttons': [
-                        {
-                            'type': 'postback',
-                            'title': 'Postback Button',
-                            'payload': 'DEVELOPER_DEFINED_PAYLOAD',
-                        }
-                    ],
+                    'template_type': 'generic',
+                    'elements': cart,
                 },
-            }
+            },
         },
     }
 

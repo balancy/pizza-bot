@@ -110,7 +110,7 @@ def handle_description(update, context):
         return HANDLE_MENU
 
     if query == 'Cart':
-        cart = fetch_cart_items(auth_token, 'pizza_{}'.format(chat.chat_id))
+        cart = fetch_cart_items(auth_token, f'tg_pizza_{chat.chat_id}')
         send_cart(cart, chat)
 
         return HANDLE_CART

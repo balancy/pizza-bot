@@ -20,12 +20,37 @@ def format_menu_element(product, auth_token):
     }
 
 
+def format_cart_element(product):
+    unit_price = product['unit_price']['amount']
+    value_price = product['value']['amount']
+    quantity = product['quantity']
+
+    image_url = product['image']['href']
+
+    return {
+        'title': f'{product["name"]} ({unit_price} р., {quantity} шт.)',
+        'image_url': image_url,
+        'subtitle': f'Всего на {value_price} рублей',
+        'buttons': [
+            {
+                'type': 'postback',
+                'title': 'Добавить еще одну',
+                'payload': f'ADD_TO_CART_{product["id"]}',
+            },
+            {
+                'type': 'postback',
+                'title': 'Убрать из корзины',
+                'payload': f'REMOVE_FROM_CART_{product["id"]}',
+            },
+        ],
+    }
+
+
 def format_first_menu_element():
     return {
         'title': 'Меню',
         'image_url': 'https://cdn.pixabay.com/photo/2013/07/13/13/18/'
         'pizza-160780_1280.png',
-        # 'image_url': 'static/pizza-logo.png',
         'subtitle': 'Здесь Вы можете выбрать один из вариантов',
         'buttons': [
             {
@@ -42,6 +67,31 @@ def format_first_menu_element():
                 'type': 'postback',
                 'title': 'Сделать заказ',
                 'payload': 'MAKE_ORDER',
+            },
+        ],
+    }
+
+
+def format_first_cart_element(price):
+    return {
+        'title': f'Заказ на сумму {price} руб.',
+        'image_url': 'https://postium.ru/wp-content/uploads/2018/08/'
+        'idealnaya-korzina-internet-magazina-1068x713.jpg',
+        'buttons': [
+            {
+                'type': 'postback',
+                'title': 'Самовывоз',
+                'payload': 'PICKUP',
+            },
+            {
+                'type': 'postback',
+                'title': 'Доставка',
+                'payload': 'DELIVERY',
+            },
+            {
+                'type': 'postback',
+                'title': 'Обратно в меню',
+                'payload': 'BACK_TO_MENU',
             },
         ],
     }
