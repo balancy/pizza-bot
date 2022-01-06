@@ -1,7 +1,7 @@
 from api.moltin_requests import fetch_image_by_id
 
 
-def get_menu_element(product, auth_token):
+def format_menu_element(product, auth_token):
     product_price = product['meta']['display_price']['without_tax']['amount']
     product_image_id = product['relationships']['main_image']['data']['id']
     product_image = fetch_image_by_id(auth_token, product_image_id)['data']
@@ -20,7 +20,7 @@ def get_menu_element(product, auth_token):
     }
 
 
-def get_first_menu_element():
+def format_first_menu_element():
     return {
         'title': 'Меню',
         'image_url': 'https://cdn.pixabay.com/photo/2013/07/13/13/18/'

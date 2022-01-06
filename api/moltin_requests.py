@@ -285,6 +285,44 @@ def fetch_products(token):
     return response.json()
 
 
+def fetch_products_by_category_id(token, category_id):
+    """Make an API request to fetch products filtered by category
+
+    Args:
+        token: authorization token
+        category_id: id of catagory
+
+    Returns:
+        API response containing products
+    """
+    headers = {'Authorization': f'Bearer {token}'}
+    params = {'filter': f'eq(category.id,{category_id})'}
+
+    response = requests.get(
+        f'{API_ROOT}/v2/products', headers=headers, params=params
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def fetch_categories(token):
+    """Make an API request to fetch categories
+
+    Args:
+        token: authorization token
+
+    Returns:
+        API response containing categories
+    """
+    headers = {'Authorization': f'Bearer {token}'}
+
+    response = requests.get(f'{API_ROOT}/v2/categories', headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
 def fetch_product_by_id(token, product_id):
     """Make an API request to fetch product details
 
