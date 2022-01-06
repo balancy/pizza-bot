@@ -44,3 +44,20 @@ def format_first_menu_element():
             },
         ],
     }
+
+
+def format_last_menu_element(categories):
+    return {
+        'title': 'Не нашли нужную пиццу?',
+        'image_url': 'https://primepizza.ru/uploads/position/'
+        'large_0c07c6fd5c4dcadddaf4a2f1a2c218760b20c396.jpg',
+        'subtitle': 'Остальные пиццы можно посмотреть в категориях:',
+        'buttons': [
+            {
+                'type': 'postback',
+                'title': category['name'],
+                'payload': f'CATEGORY_ID_{category["id"]}',
+            }
+            for category in categories
+        ],
+    }
