@@ -1,33 +1,10 @@
 import requests
 
-from api.moltin_requests import fetch_categories, fetch_products_by_category_id
-from helpers.fb_items_formatters import (
-    format_first_menu_element,
-    format_last_menu_element,
-    format_menu_element,
-)
+from helpers.fb_fetch_helpers import fetch_front_page_menu
 
 
 def send_menu(recipient_id, auth_token, fb_token):
-    categories = fetch_categories(auth_token)['data']
-
-    first_category = next(
-        filter(lambda category: category['slug'] == 'front_page', categories)
-    )
-
-    other_categories = list(
-        filter(lambda category: category['slug'] != 'front_page', categories)
-    )
-
-    products = fetch_products_by_category_id(
-        auth_token, first_category.get('id')
-    )['data']
-
-    menu_elements = [
-        format_first_menu_element(),
-        *[format_menu_element(product, auth_token) for product in products],
-        format_last_menu_element(other_categories),
-    ]
+    front_page_menu = fetch_front_page_menu(auth_token)
 
     params = {'access_token': fb_token}
     headers = {'Content-Type': 'application/json'}
@@ -39,7 +16,7 @@ def send_menu(recipient_id, auth_token, fb_token):
                 'type': 'template',
                 'payload': {
                     'template_type': 'generic',
-                    'elements': menu_elements,
+                    'elements': front_page_menu,
                 },
             },
         },

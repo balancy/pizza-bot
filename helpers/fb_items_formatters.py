@@ -14,7 +14,7 @@ def format_menu_element(product, auth_token):
             {
                 'type': 'postback',
                 'title': 'Добавить в корзину',
-                'payload': f'ADD_{product["id"]}',
+                'payload': f'ADD_TO_CART_{product["id"]}',
             }
         ],
     }
