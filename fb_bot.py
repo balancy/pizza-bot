@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request
 
-from helpers.fb_state_handlers import State, handle_state
+from helpers.fb_action_handlers import handle_user_input, State
 from helpers.token_handers import AuthToken
 
 
@@ -14,11 +14,11 @@ app = Flask(__name__)
 def start():
     load_dotenv()
 
-    global auth_token, fb_token, state, verify_token
+    global auth, fb_token, state, verify_token
 
     client_id = os.getenv('CLIENT_ID')
     client_secret = os.getenv('CLIENT_SECRET')
-    auth_token = AuthToken(client_id, client_secret)
+    auth = AuthToken(client_id, client_secret)
 
     fb_token = os.getenv('PAGE_ACCESS_TOKEN')
     verify_token = os.getenv('VERIFY_TOKEN')
@@ -48,23 +48,17 @@ def webhook():
     if data['object'] == 'page':
         for entry in data['entry']:
             for event in entry['messaging']:
-                sender_id = event['sender']['id']
+                user_id = event['sender']['id']
 
-                if message := event.get('message'):
-                    state = handle_state(
-                        state=state,
-                        sender_id=sender_id,
-                        auth_token=auth_token,
-                        fb_token=fb_token,
-                        message=message['text'],
+                message = event.get('message')
+                postback = event.get('postback')
+
+                if message or postback:
+                    message = message['text'] if message else None
+                    payload = postback['payload'] if postback else None
+
+                    state = handle_user_input(
+                        state, user_id, auth, fb_token, message, payload
                     )
 
-                elif postback := event.get('postback'):
-                    state = handle_state(
-                        state=state,
-                        sender_id=sender_id,
-                        auth_token=auth_token,
-                        fb_token=fb_token,
-                        payload=postback['payload'],
-                    )
     return "ok", 200
