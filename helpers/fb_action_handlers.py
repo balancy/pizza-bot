@@ -9,14 +9,14 @@ class State(Enum):
     CART = 2
 
 
-def handle_user_input(state, user_id, auth, fb_token, message, payload):
+def handle_user_input(db, state, user_id, auth, fb_token, message, payload):
     if state == State.MENU and message:
-        send_items(user_id, auth, fb_token, 'menu')
+        send_items(user_id, auth, fb_token, 'menu', db, 'front_page')
         return state
 
-    if 'CATEGORY_ID' in payload and state == State.MENU:
-        category_id = payload.replace('CATEGORY_ID_', '')
-        send_items(user_id, auth, fb_token, 'menu', category_id)
+    if 'CATEGORY' in payload and state == State.MENU:
+        category_slug = payload.replace('CATEGORY_', '')
+        send_items(user_id, auth, fb_token, 'menu', db, category_slug)
         return state
 
     if 'ADD' in payload and state == State.MENU:
@@ -38,7 +38,7 @@ def handle_user_input(state, user_id, auth, fb_token, message, payload):
         return State.CART
 
     if payload == 'BACK_TO_MENU' and state == State.CART:
-        send_items(user_id, auth, fb_token, 'menu')
+        send_items(user_id, auth, fb_token, 'menu', db, 'front_page')
         return State.MENU
 
 

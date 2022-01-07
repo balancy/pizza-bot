@@ -1,13 +1,17 @@
+import json
+
 import requests
 
-from helpers.fb_items_formatters import format_cart, format_menu
+from helpers.fb_items_formatters import get_formatted_cart
 
 
-def send_items(user_id, auth, fb_token, items_type, category_id=None):
+def send_items(
+    user_id, auth, fb_token, items_type, db=None, category_slug=None
+):
     if items_type == 'cart':
-        items = format_cart(auth, user_id)
+        items = get_formatted_cart(auth, user_id)
     else:
-        items = format_menu(auth, category_id)
+        items = json.loads(db.get(category_slug).decode())
 
     params = {'access_token': fb_token}
     headers = {'Content-Type': 'application/json'}

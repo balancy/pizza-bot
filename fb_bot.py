@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from flask import Flask, request
+from redis import Redis
 
 from helpers.fb_action_handlers import handle_user_input, State
 from helpers.token_handers import AuthToken
@@ -14,11 +15,15 @@ app = Flask(__name__)
 def start():
     load_dotenv()
 
-    global auth, fb_token, state, verify_token
+    global auth, db, fb_token, state, verify_token
 
     client_id = os.getenv('CLIENT_ID')
     client_secret = os.getenv('CLIENT_SECRET')
     auth = AuthToken(client_id, client_secret)
+
+    redis_host = os.getenv('REDIS_PORT', 'localhost')
+    redis_port = os.getenv('REDIS_PORT', 6379)
+    db = Redis(host=redis_host, port=redis_port)
 
     fb_token = os.getenv('PAGE_ACCESS_TOKEN')
     verify_token = os.getenv('VERIFY_TOKEN')
@@ -58,7 +63,7 @@ def webhook():
                     payload = postback['payload'] if postback else None
 
                     state = handle_user_input(
-                        state, user_id, auth, fb_token, message, payload
+                        db, state, user_id, auth, fb_token, message, payload
                     )
 
     return "ok", 200
