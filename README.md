@@ -90,3 +90,24 @@ docker run --env-file ./.env.dev pizza-bot
 #### Test payment card for telegram bot
 
 - `4242 4242 4242 4242`
+
+## Launch fb bot via console
+
+1. Configure [webhook for fb](https://gist.github.com/voron434/3765d14574067d17aa9e676145df360e)
+
+2. Rename `.env.example` to `.env` and define your environment variables
+
+- `CLIENT_ID` - client id of your [elasticpath](https://www.elasticpath.com/) account
+- `CLIENT_SECRET` - client secret of your [elasticpath](https://www.elasticpath.com/) account
+- `PAGE_ACCESS_TOKEN` - fb web hook page access token
+- `VERIFY_TOKEN` - fb web hook verify token
+
+3. Launch Redis server
+```
+redis-server
+```
+
+4. Launch app
+```
+gunicorn fb_bot:app
+```
