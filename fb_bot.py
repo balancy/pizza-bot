@@ -25,7 +25,6 @@ scheduler.start()
 @scheduler.task('interval', minutes=1, next_run_time=datetime.now())
 def cache_menu():
     handle_menu_caching(AUTH, DB)
-    print('cached')
 
 
 @app.route('/', methods=['GET'])
