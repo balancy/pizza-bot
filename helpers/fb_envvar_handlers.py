@@ -19,9 +19,10 @@ def get_env_vars():
     client_secret = os.getenv('CLIENT_SECRET')
     auth = AuthToken(client_id, client_secret)
 
-    redis_host = os.getenv('REDIS_PORT', 'localhost')
+    redis_password = os.getenv('REDIS_PASSWORD', '')
+    redis_host = os.getenv('REDIS_HOST', 'localhost')
     redis_port = os.getenv('REDIS_PORT', 6379)
-    db = Redis(host=redis_host, port=redis_port)
+    db = Redis(host=redis_host, port=redis_port, password=redis_password)
 
     fb_token = os.getenv('PAGE_ACCESS_TOKEN')
     verify_token = os.getenv('VERIFY_TOKEN')

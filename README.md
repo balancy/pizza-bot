@@ -91,21 +91,21 @@ docker run --env-file ./.env.dev pizza-bot
 
 - `4242 4242 4242 4242`
 
-## Launch fb bot via console
+## Launch fb bot via console locally
 
 1. Configure [webhook for fb](https://gist.github.com/voron434/3765d14574067d17aa9e676145df360e)
 
-2. Rename `.env.example` to `.env` and define your environment variables
+2. Create [redis db](https://redis.com/)
+
+3. Rename `.env.example` to `.env` and define your environment variables
 
 - `CLIENT_ID` - client id of your [elasticpath](https://www.elasticpath.com/) account
 - `CLIENT_SECRET` - client secret of your [elasticpath](https://www.elasticpath.com/) account
 - `PAGE_ACCESS_TOKEN` - fb web hook page access token
 - `VERIFY_TOKEN` - fb web hook verify token
-
-3. Launch Redis server
-```
-redis-server
-```
+- `REDIS_HOST` - redis db
+- `REDIS_PORT` - redis port
+- `REDIS_PASSWORD` - redis password
 
 4. Launch app
 ```
