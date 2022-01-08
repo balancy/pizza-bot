@@ -1,12 +1,13 @@
-from enum import Enum
+import json
 
-from api.moltin_requests import add_product_to_cart, remove_cart_item_by_id
+from api.moltin_requests import (
+    add_product_to_cart,
+    fetch_categories,
+    remove_cart_item_by_id,
+)
+from helpers.fb_envvar_handlers import State
 from helpers.fb_chat_replying import send_items, send_message
-
-
-class State(Enum):
-    MENU = 1
-    CART = 2
+from helpers.fb_items_formatters import get_formatted_menu
 
 
 def handle_user_input(db, state, user_id, auth, fb_token, message, payload):
@@ -59,3 +60,11 @@ def handle_removing_from_cart(payload, user_id, auth, fb_token):
 
     message = f'{product_name} убрана из корзины'
     send_message(user_id, message, fb_token)
+
+
+def handle_menu_caching(auth, db):
+    categories = fetch_categories(auth.token)['data']
+    for category in categories:
+        slug = category['slug']
+        menu = get_formatted_menu(auth, categories, slug)
+        db.set(slug, json.dumps(menu))

@@ -1,33 +1,30 @@
-import os
+from datetime import datetime
 
-from dotenv import load_dotenv
 from flask import Flask, request
-from redis import Redis
+from flask_apscheduler import APScheduler
 
-from helpers.fb_action_handlers import handle_user_input, State
-from helpers.token_handers import AuthToken
+from helpers.fb_envvar_handlers import get_env_vars
+from helpers.fb_action_handlers import handle_menu_caching, handle_user_input
+
+AUTH, DB, FB_TOKEN, VERIFY_TOKEN, state = get_env_vars()
+
+
+class Config:
+    SCHEDULER_API_ENABLED = True
+    SCHEDULER_TIMEZONE = "Europe/Paris"
 
 
 app = Flask(__name__)
+app.config.from_object(Config())
+
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
 
 
-@app.before_first_request
-def start():
-    load_dotenv()
-
-    global auth, db, fb_token, state, verify_token
-
-    client_id = os.getenv('CLIENT_ID')
-    client_secret = os.getenv('CLIENT_SECRET')
-    auth = AuthToken(client_id, client_secret)
-
-    redis_host = os.getenv('REDIS_PORT', 'localhost')
-    redis_port = os.getenv('REDIS_PORT', 6379)
-    db = Redis(host=redis_host, port=redis_port)
-
-    fb_token = os.getenv('PAGE_ACCESS_TOKEN')
-    verify_token = os.getenv('VERIFY_TOKEN')
-    state = State.MENU
+@scheduler.task('interval', minutes=5, next_run_time=datetime.now())
+def cache_menu():
+    handle_menu_caching(AUTH, DB)
 
 
 @app.route('/', methods=['GET'])
@@ -36,7 +33,7 @@ def verify():
 
     args = request.args
     if args.get('hub.mode') == 'subscribe' and args.get('hub.challenge'):
-        if not request.args.get('hub.verify_token') == verify_token:
+        if not request.args.get('hub.verify_token') == VERIFY_TOKEN:
             return 'Verification token mismatch', 403
         return request.args['hub.challenge'], 200
 
@@ -47,8 +44,8 @@ def verify():
 def webhook():
     """Webhook to handle facebook messages."""
 
-    global state
     data = request.get_json()
+    global state
 
     if data['object'] == 'page':
         for entry in data['entry']:
@@ -61,9 +58,8 @@ def webhook():
                 if message or postback:
                     message = message['text'] if message else None
                     payload = postback['payload'] if postback else None
-
                     state = handle_user_input(
-                        db, state, user_id, auth, fb_token, message, payload
+                        DB, state, user_id, AUTH, FB_TOKEN, message, payload
                     )
 
     return "ok", 200
