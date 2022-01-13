@@ -1,4 +1,3 @@
-from enum import Enum
 import json
 
 from api.moltin_requests import (
@@ -10,42 +9,37 @@ from helpers.fb_chat_replying import send_items, send_message
 from helpers.fb_items_formatters import get_formatted_menu
 
 
-class State(Enum):
-    MENU = 1
-    CART = 2
-
-
 def handle_user_input(db, state, user_id, auth, fb_token, message, payload):
-    if state == State.MENU and message:
+    if state == 'MENU' and message:
         send_items(user_id, auth, fb_token, 'menu', db, 'front_page')
         return state
 
-    if 'CATEGORY' in payload and state == State.MENU:
+    if payload and 'CATEGORY' in payload and state == 'MENU':
         category_slug = payload.replace('CATEGORY_', '')
         send_items(user_id, auth, fb_token, 'menu', db, category_slug)
         return state
 
-    if 'ADD' in payload and state == State.MENU:
+    if payload and 'ADD' in payload and state == 'MENU':
         handle_adding_to_cart(payload, user_id, auth, fb_token)
         return state
 
-    if 'ADD' in payload and state == State.CART:
+    if payload and 'ADD' in payload and state == 'CART':
         handle_adding_to_cart(payload, user_id, auth, fb_token)
         send_items(user_id, auth, fb_token, 'cart')
         return state
 
-    if 'REMOVE' in payload and state == State.CART:
+    if payload and 'REMOVE' in payload and state == 'CART':
         handle_removing_from_cart(payload, user_id, auth, fb_token)
         send_items(user_id, auth, fb_token, 'cart')
         return state
 
     if payload == 'CART':
         send_items(user_id, auth, fb_token, 'cart')
-        return State.CART
+        return 'CART'
 
-    if payload == 'BACK_TO_MENU' and state == State.CART:
+    if payload == 'BACK_TO_MENU' and state == 'CART':
         send_items(user_id, auth, fb_token, 'menu', db, 'front_page')
-        return State.MENU
+        return 'MENU'
 
 
 def handle_adding_to_cart(payload, user_id, auth, fb_token):

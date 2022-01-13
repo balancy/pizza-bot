@@ -1,5 +1,4 @@
 from datetime import datetime
-from enum import Enum
 import os
 
 from dotenv import load_dotenv
@@ -7,11 +6,7 @@ from flask import Flask, request
 from flask_apscheduler import APScheduler
 from redis import Redis
 
-from helpers.fb_action_handlers import (
-    handle_menu_caching,
-    handle_user_input,
-    State,
-)
+from helpers.fb_action_handlers import handle_menu_caching, handle_user_input
 from helpers.token_handers import AuthToken
 
 
@@ -20,7 +15,7 @@ class Config:
     SCHEDULER_TIMEZONE = "Europe/Paris"
 
 
-class MyFlaskApp(Flask):
+class FlaskApp(Flask):
     load_dotenv()
 
     client_id = os.getenv('CLIENT_ID')
@@ -34,10 +29,9 @@ class MyFlaskApp(Flask):
 
     fb_token = os.getenv('PAGE_ACCESS_TOKEN')
     verify_token = os.getenv('VERIFY_TOKEN')
-    state = State.MENU
 
 
-app = MyFlaskApp(__name__)
+app = FlaskApp(__name__)
 app.config.from_object(Config())
 
 scheduler = APScheduler()
@@ -68,12 +62,16 @@ def webhook():
     """Webhook to handle facebook messages."""
 
     data = request.get_json()
-    global state
 
     if data['object'] == 'page':
         for entry in data['entry']:
             for event in entry['messaging']:
                 user_id = event['sender']['id']
+
+                if state_in_db := app.db.get(f'STATE_{user_id}'):
+                    state = state_in_db.decode()
+                else:
+                    state = 'MENU'
 
                 message = event.get('message')
                 postback = event.get('postback')
@@ -81,14 +79,16 @@ def webhook():
                 if message or postback:
                     message = message['text'] if message else None
                     payload = postback['payload'] if postback else None
-                    app.state = handle_user_input(
+
+                    state = handle_user_input(
                         db=app.db,
-                        state=app.state,
+                        state=state,
                         user_id=user_id,
                         auth=app.auth,
                         fb_token=app.fb_token,
                         message=message,
                         payload=payload,
                     )
+                    app.db.set(f'STATE_{user_id}', state)
 
     return "ok", 200
