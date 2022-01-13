@@ -1,3 +1,4 @@
+from enum import Enum
 import json
 
 from api.moltin_requests import (
@@ -5,9 +6,13 @@ from api.moltin_requests import (
     fetch_categories,
     remove_cart_item_by_id,
 )
-from helpers.fb_envvar_handlers import State
 from helpers.fb_chat_replying import send_items, send_message
 from helpers.fb_items_formatters import get_formatted_menu
+
+
+class State(Enum):
+    MENU = 1
+    CART = 2
 
 
 def handle_user_input(db, state, user_id, auth, fb_token, message, payload):
