@@ -3,7 +3,7 @@ import json
 import requests
 from slugify import slugify
 
-from helpers.items_formatters import format_product
+from helpers.tg_items_formatters import format_product
 
 API_ROOT = 'https://api.moltin.com'
 
@@ -12,7 +12,7 @@ class EntityExistsError(requests.models.HTTPError):
     pass
 
 
-def fetch_auth_token(client_id, client_secret=None):
+def fetch_auth_token(client_id, client_secret):
     """Make an API request to fetch bearer token
 
     Args:
@@ -22,17 +22,11 @@ def fetch_auth_token(client_id, client_secret=None):
     Returns:
         API response containing authorization token
     """
-    if client_secret:
-        data = {
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'grant_type': 'client_credentials',
-        }
-    else:
-        data = {
-            'client_id': client_id,
-            'grant_type': 'implicit',
-        }
+    data = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'grant_type': 'client_credentials',
+    }
 
     response = requests.post(f'{API_ROOT}/oauth/access_token', data=data)
     response.raise_for_status()
@@ -286,6 +280,44 @@ def fetch_products(token):
     headers = {'Authorization': f'Bearer {token}'}
 
     response = requests.get(f'{API_ROOT}/v2/products', headers=headers)
+    response.raise_for_status()
+
+    return response.json()
+
+
+def fetch_products_by_category_id(token, category_id):
+    """Make an API request to fetch products filtered by category
+
+    Args:
+        token: authorization token
+        category_id: id of catagory
+
+    Returns:
+        API response containing products
+    """
+    headers = {'Authorization': f'Bearer {token}'}
+    params = {'filter': f'eq(category.id,{category_id})'}
+
+    response = requests.get(
+        f'{API_ROOT}/v2/products', headers=headers, params=params
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
+def fetch_categories(token):
+    """Make an API request to fetch categories
+
+    Args:
+        token: authorization token
+
+    Returns:
+        API response containing categories
+    """
+    headers = {'Authorization': f'Bearer {token}'}
+
+    response = requests.get(f'{API_ROOT}/v2/categories', headers=headers)
     response.raise_for_status()
 
     return response.json()

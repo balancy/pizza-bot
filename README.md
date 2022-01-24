@@ -1,6 +1,6 @@
 # PIZZA SHOP BOT
 
-![gif](https://s10.gifyu.com/images/pizza_bot.gif)
+![gif](static/pizza_bot.gif)
 
 App represents telegram bot for customers of imagined "Pizza Shop". "Pizza shop" is a test online shop with data hosted on [Elasticpath](https://www.elasticpath.com/) e-commerce platform.
 
@@ -43,13 +43,13 @@ pip install -r requirements.txt
 - `YANDEX_API_TOKEN` - token of your yandex account. Could by acquired via [yandex](https://developer.tech.yandex.ru/services/).
 - `PAYMENT_PROVIDER_TOKEN` - token of payment provider for your telegram bot. Could be acquired via [BotFather](https://t.me/BotFather).
 
-## Launch bot via console
+## Launch telegram bot via console
 
 ```console
 python bot.py
 ```
 
-## Launch bot via docker
+## Launch telegram bot via docker
 
 #### Create docker image
 
@@ -87,6 +87,27 @@ Run container:
 docker run --env-file ./.env.dev pizza-bot
 ```
 
-## NOTES
+#### Test payment card for telegram bot
 
-- `Test card` `4242 4242 4242 4242`
+- `4242 4242 4242 4242`
+
+## Launch fb bot via console locally
+
+1. Configure [webhook for fb](https://gist.github.com/voron434/3765d14574067d17aa9e676145df360e)
+
+2. Create [redis db](https://redis.com/)
+
+3. Rename `.env.example` to `.env` and define your environment variables
+
+- `CLIENT_ID` - client id of your [elasticpath](https://www.elasticpath.com/) account
+- `CLIENT_SECRET` - client secret of your [elasticpath](https://www.elasticpath.com/) account
+- `PAGE_ACCESS_TOKEN` - fb web hook page access token
+- `VERIFY_TOKEN` - fb web hook verify token
+- `REDIS_HOST` - redis db
+- `REDIS_PORT` - redis port
+- `REDIS_PASSWORD` - redis password
+
+4. Launch app
+```
+gunicorn fb_bot:app
+```
